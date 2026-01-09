@@ -107,15 +107,15 @@ fn example_4_dependencies() {
 
     // Create formulas with dependencies
     let base = Formula::new("base_amount", "return 1000");
-    let discount = Formula::new("discount_amount", "return GetOutputFrom('base_amount') * 0.1");
+    let discount = Formula::new("discount_amount", "return get_output_from('base_amount') * 0.1");
     let subtotal = Formula::new(
         "subtotal",
-        "return GetOutputFrom('base_amount') - GetOutputFrom('discount_amount')",
+        "return get_output_from('base_amount') - get_output_from('discount_amount')",
     );
-    let tax = Formula::new("tax", "return GetOutputFrom('subtotal') * 0.08");
+    let tax = Formula::new("tax", "return get_output_from('subtotal') * 0.08");
     let total = Formula::new(
         "grand_total",
-        "return GetOutputFrom('subtotal') + GetOutputFrom('tax')",
+        "return get_output_from('subtotal') + get_output_from('tax')",
     );
 
     // Engine automatically resolves dependencies
@@ -182,7 +182,7 @@ fn example_6_strings() {
         Formula::new("full_name", "return first_name + ' ' + last_name"),
         Formula::new("greeting", "return 'Hello, ' + first_name + '!'"),
         Formula::new("substring", "return substr('Hello World', 0, 5)"),
-        Formula::new("padded", "return paddedstring('42', 5)"),
+        Formula::new("padded", "return padded_string('42', 5)"),
     ];
 
     engine.execute(formulas).unwrap();

@@ -29,11 +29,11 @@ impl Formula {
         }
     }
 
-    /// Extract dependencies from the formula body by finding GetOutputFrom calls
-    /// Pattern: GetOutputFrom('formula_name')
+    /// Extract dependencies from the formula body by finding get_output_from calls
+    /// Pattern: get_output_from('formula_name')
     fn build_depends_on(body: &str) -> Vec<String> {
         // Rust regex doesn't support lookahead/lookbehind, so we'll use a simpler approach
-        let pattern = r"GetOutputFrom\('([^']+)'\)";
+        let pattern = r"get_output_from\('([^']+)'\)";
         let re = Regex::new(pattern).unwrap();
         
         re.captures_iter(body)
@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_formula_dependencies() {
-        let body = "return GetOutputFrom('formula1') + GetOutputFrom('formula2')";
+        let body = "return get_output_from('formula1') + get_output_from('formula2')";
         let formula = Formula::new("test", body);
         
         assert_eq!(formula.depends_on().len(), 2);

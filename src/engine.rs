@@ -5,6 +5,7 @@ use crate::function::{build_function_id, Function};
 use crate::graph::DAGraph;
 use crate::parser::{Evaluator, Parser};
 use crate::value::Value;
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -64,26 +65,37 @@ impl Engine {
         }
 
         // Execute formulas layer by layer
+        // Formulas in the same layer can be executed in parallel
         for layer in layers {
-            // In a real implementation, these could be executed in parallel
-            for formula_name in layer {
-                if let Some(formula) = graph.get(&formula_name) {
-                    self.execute_formula(formula);
-                }
-            }
+            self.execute_layer_parallel(&graph, layer);
         }
 
         Ok(())
     }
 
-    fn execute_formula(&mut self, formula: &Formula) {
-        match self.try_execute_formula(formula) {
-            Ok(result) => {
-                self.formula_result_cache.set(formula.name().to_string(), result);
-            }
-            Err(e) => {
-                let error_msg = format!("Error executing formula '{}': {}", formula.name(), e);
-                self.errors.insert(formula.name().to_string(), error_msg);
+    /// Execute all formulas in a layer in parallel
+    fn execute_layer_parallel(&mut self, graph: &DAGraph<String, Formula>, layer: Vec<String>) {
+        // Execute formulas in parallel
+        let results: Vec<(String, Result<Value>)> = layer
+            .par_iter()
+            .filter_map(|formula_name| {
+                graph.get(formula_name).map(|formula| {
+                    let result = self.try_execute_formula(formula);
+                    (formula_name.clone(), result)
+                })
+            })
+            .collect();
+
+        // Process results sequentially to update caches and collect errors
+        for (formula_name, result) in results {
+            match result {
+                Ok(value) => {
+                    self.formula_result_cache.set(formula_name, value);
+                }
+                Err(e) => {
+                    let error_msg = format!("Error executing formula '{}': {}", formula_name, e);
+                    self.errors.insert(formula_name, error_msg);
+                }
             }
         }
     }
@@ -159,11 +171,18 @@ mod tests {
         let mut engine = Engine::new();
         
         let formula1 = Formula::new("first", "return 10");
-        let formula2 = Formula::new("second", "return GetOutputFrom('first') * 2");
+        let formula2 = Formula::new("second", "return get_output_from('first') * 2");
         
         engine.execute(vec![formula1, formula2]).unwrap();
         
-        let result = engine.get_result("second").unwrap();
+        // Check for errors
+        if !engine.get_errors().is_empty() {
+            for (name, error) in engine.get_errors() {
+                eprintln!("Error in {}: {}", name, error);
+            }
+        }
+        
+        let result = engine.get_result("second").expect("second formula should have result");
         assert_eq!(result, Value::Number(20.0));
     }
 
@@ -176,5 +195,51 @@ mod tests {
         
         let result = engine.get_result("test").unwrap();
         assert_eq!(result, Value::Number(100.0));
+    }
+
+    #[test]
+    fn test_parallel_execution() {
+        let mut engine = Engine::new();
+        
+        // Create multiple independent formulas that can be executed in parallel
+        let formulas = vec![
+            Formula::new("a", "return 1 + 1"),
+            Formula::new("b", "return 2 + 2"),
+            Formula::new("c", "return 3 + 3"),
+            Formula::new("d", "return 4 + 4"),
+            Formula::new("e", "return 5 + 5"),
+        ];
+        
+        engine.execute(formulas).unwrap();
+        
+        assert_eq!(engine.get_result("a").unwrap(), Value::Number(2.0));
+        assert_eq!(engine.get_result("b").unwrap(), Value::Number(4.0));
+        assert_eq!(engine.get_result("c").unwrap(), Value::Number(6.0));
+        assert_eq!(engine.get_result("d").unwrap(), Value::Number(8.0));
+        assert_eq!(engine.get_result("e").unwrap(), Value::Number(10.0));
+    }
+
+    #[test]
+    fn test_parallel_with_dependencies() {
+        let mut engine = Engine::new();
+        
+        // Layer 0: a, b (can execute in parallel)
+        // Layer 1: c, d (can execute in parallel, both depend on layer 0)
+        // Layer 2: e (depends on layer 1)
+        let formulas = vec![
+            Formula::new("a", "return 10"),
+            Formula::new("b", "return 20"),
+            Formula::new("c", "return get_output_from('a') * 2"),
+            Formula::new("d", "return get_output_from('b') * 2"),
+            Formula::new("e", "return get_output_from('c') + get_output_from('d')"),
+        ];
+        
+        engine.execute(formulas).unwrap();
+        
+        assert_eq!(engine.get_result("a").unwrap(), Value::Number(10.0));
+        assert_eq!(engine.get_result("b").unwrap(), Value::Number(20.0));
+        assert_eq!(engine.get_result("c").unwrap(), Value::Number(20.0));
+        assert_eq!(engine.get_result("d").unwrap(), Value::Number(40.0));
+        assert_eq!(engine.get_result("e").unwrap(), Value::Number(60.0));
     }
 }

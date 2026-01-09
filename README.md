@@ -6,6 +6,7 @@ A Rust implementation of the Formula Calculator Engine, providing a powerful for
 
 - **Formula Parsing**: Parse and evaluate complex formulas with arithmetic, logical, and comparison operations
 - **Dependency Management**: Automatically resolve and execute formulas in the correct order based on dependencies
+- **Parallel Execution**: Formulas in the same dependency layer are executed in parallel for maximum performance
 - **Built-in Functions**: Support for mathematical, string, and date functions
 - **Custom Functions**: Register custom functions to extend functionality
 - **Variables**: Support for variables in formulas
@@ -101,8 +102,8 @@ use formcalc::{Engine, Formula, Value};
 let mut engine = Engine::new();
 
 let formula1 = Formula::new("base_price", "return 100");
-let formula2 = Formula::new("with_tax", "return GetOutputFrom('base_price') * 1.2");
-let formula3 = Formula::new("final_price", "return GetOutputFrom('with_tax') + 10");
+let formula2 = Formula::new("with_tax", "return get_output_from('base_price') * 1.2");
+let formula3 = Formula::new("final_price", "return get_output_from('with_tax') + 10");
 
 // The engine automatically resolves dependencies and executes in correct order
 engine.execute(vec![formula1, formula2, formula3]).unwrap();
@@ -224,7 +225,8 @@ The engine follows the architecture:
 
 ## Performance Considerations
 
-- Formulas in the same dependency layer can be executed in parallel (not yet implemented in this version)
+- **Parallel Execution**: Formulas in the same dependency layer are executed in parallel using Rayon
 - Results are cached to avoid re-computation
 - Function results are cached per execution
+- Layer-by-layer execution ensures dependencies are resolved correctly
 

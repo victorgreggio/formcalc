@@ -2,6 +2,13 @@
 
 Get started with the FormCalc engine in 5 minutes.
 
+## Key Features
+
+- 🚀 **Parallel Execution**: Formulas execute in parallel within each dependency layer
+- 📊 **Dependency Resolution**: Automatic topological sorting
+- 🔧 **Extensible**: Add custom functions easily
+- 🛡️ **Type Safe**: Strong typing with Rust's guarantees
+
 ## Installation
 
 Add to your `Cargo.toml`:
@@ -75,8 +82,8 @@ let mut engine = Engine::new();
 
 // Formulas can depend on each other
 let price = Formula::new("price", "return 100");
-let tax = Formula::new("tax", "return GetOutputFrom('price') * 0.1");
-let total = Formula::new("total", "return GetOutputFrom('price') + GetOutputFrom('tax')");
+let tax = Formula::new("tax", "return get_output_from('price') * 0.1");
+let total = Formula::new("total", "return get_output_from('price') + get_output_from('tax')");
 
 // Engine automatically resolves dependencies
 engine.execute(vec![price, tax, total]).unwrap();
@@ -149,6 +156,32 @@ engine.execute(vec![formula]).unwrap();
 println!("{}", engine.get_result("result").unwrap()); // Prints: 25
 ```
 
+### 8. Parallel Execution
+
+The engine automatically executes independent formulas in parallel:
+
+```rust
+use formcalc::{Engine, Formula};
+use std::time::Instant;
+
+let mut engine = Engine::new();
+
+// Create 100 independent formulas
+let formulas: Vec<Formula> = (0..100)
+    .map(|i| Formula::new(
+        format!("calc_{}", i),
+        format!("return {} * 2 + 1", i)
+    ))
+    .collect();
+
+let start = Instant::now();
+engine.execute(formulas).unwrap();
+let duration = start.elapsed();
+
+println!("Executed 100 formulas in {:?}", duration);
+// All formulas run in parallel!
+```
+
 ## Common Patterns
 
 ### Error Handling
@@ -167,7 +200,7 @@ if let Some(error) = engine.get_errors().get("bad") {
 }
 ```
 
-### Multiple Formulas
+### Multiple Formulas with Dependencies
 
 ```rust
 use formcalc::{Engine, Formula};
@@ -177,7 +210,7 @@ let mut engine = Engine::new();
 let formulas = vec![
     Formula::new("a", "return 10"),
     Formula::new("b", "return 20"),
-    Formula::new("c", "return GetOutputFrom('a') + GetOutputFrom('b')"),
+    Formula::new("c", "return get_output_from('a') + get_output_from('b')"),
 ];
 
 engine.execute(formulas).unwrap();
@@ -231,7 +264,7 @@ println!("Second: {}", engine.get_result("triple").unwrap());
 | `floor(n)` | Round down | `floor(4.8)` → 4 |
 | `exp(n)` | Exponential | `exp(1)` → 2.718... |
 | `substr(s, start, len)` | Substring | `substr('hello', 0, 3)` → 'hel' |
-| `paddedstring(s, w)` | Pad with zeros | `paddedstring('42', 5)` → '00042' |
+| `padded_string(s, w)` | Pad with zeros | `padded_string('42', 5)` → '00042' |
 | `year(date)` | Extract year | `year('2024-01-15')` → 2024 |
 | `month(date)` | Extract month | `month('2024-01-15')` → 1 |
 | `day(date)` | Extract day | `day('2024-01-15')` → 15 |
