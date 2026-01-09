@@ -52,7 +52,7 @@ impl Engine {
                     formula.clone(),
                     formula.depends_on().to_vec(),
                 )
-                .map_err(|e| CalculatorError::DependencyError(e))?;
+                .map_err(CalculatorError::DependencyError)?;
         }
 
         // Topological sort to get execution order
@@ -60,7 +60,10 @@ impl Engine {
 
         // Handle detached (unresolvable) formulas
         for formula_name in detached {
-            let error_msg = format!("Could not resolve dependency path for formula: '{}'", formula_name);
+            let error_msg = format!(
+                "Could not resolve dependency path for formula: '{}'",
+                formula_name
+            );
             self.errors.insert(formula_name, error_msg);
         }
 
@@ -147,9 +150,9 @@ mod tests {
     fn test_simple_formula() {
         let mut engine = Engine::new();
         let formula = Formula::new("test", "return 2 + 2");
-        
+
         engine.execute(vec![formula]).unwrap();
-        
+
         let result = engine.get_result("test").unwrap();
         assert_eq!(result, Value::Number(4.0));
     }
@@ -158,10 +161,10 @@ mod tests {
     fn test_formula_with_variable() {
         let mut engine = Engine::new();
         engine.set_variable("x".to_string(), Value::Number(10.0));
-        
+
         let formula = Formula::new("test", "return x * 2");
         engine.execute(vec![formula]).unwrap();
-        
+
         let result = engine.get_result("test").unwrap();
         assert_eq!(result, Value::Number(20.0));
     }
@@ -169,20 +172,22 @@ mod tests {
     #[test]
     fn test_formula_dependencies() {
         let mut engine = Engine::new();
-        
+
         let formula1 = Formula::new("first", "return 10");
         let formula2 = Formula::new("second", "return get_output_from('first') * 2");
-        
+
         engine.execute(vec![formula1, formula2]).unwrap();
-        
+
         // Check for errors
         if !engine.get_errors().is_empty() {
             for (name, error) in engine.get_errors() {
                 eprintln!("Error in {}: {}", name, error);
             }
         }
-        
-        let result = engine.get_result("second").expect("second formula should have result");
+
+        let result = engine
+            .get_result("second")
+            .expect("second formula should have result");
         assert_eq!(result, Value::Number(20.0));
     }
 
@@ -190,9 +195,9 @@ mod tests {
     fn test_if_statement() {
         let mut engine = Engine::new();
         let formula = Formula::new("test", "if (5 > 3) then return 100 else return 200 end");
-        
+
         engine.execute(vec![formula]).unwrap();
-        
+
         let result = engine.get_result("test").unwrap();
         assert_eq!(result, Value::Number(100.0));
     }
@@ -200,7 +205,7 @@ mod tests {
     #[test]
     fn test_parallel_execution() {
         let mut engine = Engine::new();
-        
+
         // Create multiple independent formulas that can be executed in parallel
         let formulas = vec![
             Formula::new("a", "return 1 + 1"),
@@ -209,9 +214,9 @@ mod tests {
             Formula::new("d", "return 4 + 4"),
             Formula::new("e", "return 5 + 5"),
         ];
-        
+
         engine.execute(formulas).unwrap();
-        
+
         assert_eq!(engine.get_result("a").unwrap(), Value::Number(2.0));
         assert_eq!(engine.get_result("b").unwrap(), Value::Number(4.0));
         assert_eq!(engine.get_result("c").unwrap(), Value::Number(6.0));
@@ -222,7 +227,7 @@ mod tests {
     #[test]
     fn test_parallel_with_dependencies() {
         let mut engine = Engine::new();
-        
+
         // Layer 0: a, b (can execute in parallel)
         // Layer 1: c, d (can execute in parallel, both depend on layer 0)
         // Layer 2: e (depends on layer 1)
@@ -233,9 +238,9 @@ mod tests {
             Formula::new("d", "return get_output_from('b') * 2"),
             Formula::new("e", "return get_output_from('c') + get_output_from('d')"),
         ];
-        
+
         engine.execute(formulas).unwrap();
-        
+
         assert_eq!(engine.get_result("a").unwrap(), Value::Number(10.0));
         assert_eq!(engine.get_result("b").unwrap(), Value::Number(20.0));
         assert_eq!(engine.get_result("c").unwrap(), Value::Number(20.0));

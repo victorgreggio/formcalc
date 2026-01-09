@@ -1,7 +1,7 @@
+use crate::function::Function;
+use crate::value::Value;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use crate::value::Value;
-use crate::function::Function;
 
 /// Cache for storing variables
 #[derive(Debug, Clone, Default)]
@@ -115,10 +115,10 @@ mod tests {
     fn test_variable_cache() {
         let cache = VariableCache::new();
         cache.set("x".to_string(), Value::from(42.0));
-        
+
         assert_eq!(cache.get("x"), Some(Value::from(42.0)));
         assert_eq!(cache.get("y"), None);
-        
+
         cache.clear();
         assert_eq!(cache.get("x"), None);
     }
@@ -127,7 +127,7 @@ mod tests {
     fn test_formula_result_cache() {
         let cache = FormulaResultCache::new();
         cache.set("formula1".to_string(), Value::from("result"));
-        
+
         assert_eq!(cache.get("formula1"), Some(Value::from("result")));
         assert_eq!(cache.get("formula2"), None);
     }

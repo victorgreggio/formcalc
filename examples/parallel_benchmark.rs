@@ -17,9 +17,9 @@ fn main() {
 fn benchmark_independent_formulas() {
     println!("Test 1: Independent Formulas");
     println!("-----------------------------");
-    
+
     let mut engine = Engine::new();
-    
+
     // Create 100 independent formulas
     let formulas: Vec<Formula> = (0..100)
         .map(|i| {
@@ -41,9 +41,9 @@ fn benchmark_independent_formulas() {
 fn benchmark_layered_dependencies() {
     println!("Test 2: Layered Dependencies");
     println!("-----------------------------");
-    
+
     let mut engine = Engine::new();
-    
+
     // Create a dependency tree:
     // Layer 0: 20 base formulas
     // Layer 1: 20 formulas depending on layer 0
@@ -87,9 +87,9 @@ fn benchmark_layered_dependencies() {
 fn benchmark_complex_formulas() {
     println!("Test 3: Complex Formulas");
     println!("------------------------");
-    
+
     let mut engine = Engine::new();
-    
+
     // Create formulas with more complex calculations
     let formulas: Vec<Formula> = (0..50)
         .map(|i| {

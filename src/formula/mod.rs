@@ -21,7 +21,7 @@ impl Formula {
         let name = name.into();
         let body = body.into();
         let depends_on = Self::build_depends_on(&body);
-        
+
         Self {
             name,
             body,
@@ -35,7 +35,7 @@ impl Formula {
         // Rust regex doesn't support lookahead/lookbehind, so we'll use a simpler approach
         let pattern = r"get_output_from\('([^']+)'\)";
         let re = Regex::new(pattern).unwrap();
-        
+
         re.captures_iter(body)
             .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
             .collect()
@@ -72,7 +72,7 @@ mod tests {
     fn test_formula_dependencies() {
         let body = "return get_output_from('formula1') + get_output_from('formula2')";
         let formula = Formula::new("test", body);
-        
+
         assert_eq!(formula.depends_on().len(), 2);
         assert!(formula.depends_on().contains(&"formula1".to_string()));
         assert!(formula.depends_on().contains(&"formula2".to_string()));

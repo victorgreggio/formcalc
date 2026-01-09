@@ -37,7 +37,9 @@ impl Parser {
             self.expect_token(Token::RightParen)?;
             Ok(Statement::Error(expr))
         } else {
-            Err(CalculatorError::ParseError("Expected block statement".to_string()))
+            Err(CalculatorError::ParseError(
+                "Expected block statement".to_string(),
+            ))
         }
     }
 
@@ -269,7 +271,7 @@ impl Parser {
             Token::Identifier(name) => {
                 let name = name.clone();
                 self.advance();
-                
+
                 if self.check_token(&Token::LeftParen) {
                     self.advance();
                     let args = self.parse_argument_list()?;
@@ -280,22 +282,25 @@ impl Parser {
                 }
             }
             // Built-in functions
-            Token::Max => self.parse_binary_function(|a, b| Expr::Max(a, b)),
-            Token::Min => self.parse_binary_function(|a, b| Expr::Min(a, b)),
-            Token::Rnd => self.parse_binary_function(|a, b| Expr::Rnd(a, b)),
-            Token::Ceil => self.parse_unary_function(|a| Expr::Ceil(a)),
-            Token::Floor => self.parse_unary_function(|a| Expr::Floor(a)),
-            Token::Exp => self.parse_unary_function(|a| Expr::Exp(a)),
-            Token::Year => self.parse_unary_function(|a| Expr::Year(a)),
-            Token::Month => self.parse_unary_function(|a| Expr::Month(a)),
-            Token::Day => self.parse_unary_function(|a| Expr::Day(a)),
-            Token::Substr => self.parse_ternary_function(|a, b, c| Expr::Substr(a, b, c)),
-            Token::AddDays => self.parse_binary_function(|a, b| Expr::AddDays(a, b)),
-            Token::GetDiffDays => self.parse_binary_function(|a, b| Expr::GetDiffDays(a, b)),
-            Token::PaddedString => self.parse_binary_function(|a, b| Expr::PaddedString(a, b)),
-            Token::DifferenceInMonths => self.parse_binary_function(|a, b| Expr::DifferenceInMonths(a, b)),
-            Token::GetOutputFrom => self.parse_unary_function(|a| Expr::GetOutputFrom(a)),
-            _ => Err(CalculatorError::ParseError(format!("Unexpected token: {:?}", current))),
+            Token::Max => self.parse_binary_function(Expr::Max),
+            Token::Min => self.parse_binary_function(Expr::Min),
+            Token::Rnd => self.parse_binary_function(Expr::Rnd),
+            Token::Ceil => self.parse_unary_function(Expr::Ceil),
+            Token::Floor => self.parse_unary_function(Expr::Floor),
+            Token::Exp => self.parse_unary_function(Expr::Exp),
+            Token::Year => self.parse_unary_function(Expr::Year),
+            Token::Month => self.parse_unary_function(Expr::Month),
+            Token::Day => self.parse_unary_function(Expr::Day),
+            Token::Substr => self.parse_ternary_function(Expr::Substr),
+            Token::AddDays => self.parse_binary_function(Expr::AddDays),
+            Token::GetDiffDays => self.parse_binary_function(Expr::GetDiffDays),
+            Token::PaddedString => self.parse_binary_function(Expr::PaddedString),
+            Token::DifferenceInMonths => self.parse_binary_function(Expr::DifferenceInMonths),
+            Token::GetOutputFrom => self.parse_unary_function(Expr::GetOutputFrom),
+            _ => Err(CalculatorError::ParseError(format!(
+                "Unexpected token: {:?}",
+                current
+            ))),
         }
     }
 
@@ -394,7 +399,7 @@ mod tests {
     fn test_parse_simple_return() {
         let mut parser = Parser::new("return 42").unwrap();
         let program = parser.parse().unwrap();
-        
+
         match program.statement {
             Statement::Return(Expr::Number(n)) => assert_eq!(n, 42.0),
             _ => panic!("Expected return statement with number"),
@@ -405,7 +410,7 @@ mod tests {
     fn test_parse_addition() {
         let mut parser = Parser::new("return 2 + 3").unwrap();
         let program = parser.parse().unwrap();
-        
+
         match program.statement {
             Statement::Return(Expr::Add(_, _)) => {}
             _ => panic!("Expected return statement with addition"),
@@ -416,7 +421,7 @@ mod tests {
     fn test_parse_if_statement() {
         let mut parser = Parser::new("if (5 > 3) then return 100 end").unwrap();
         let program = parser.parse().unwrap();
-        
+
         match program.statement {
             Statement::If { .. } => {}
             _ => panic!("Expected if statement"),

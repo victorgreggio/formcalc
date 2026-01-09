@@ -48,14 +48,14 @@ where
     /// Add edges from a key to its dependencies
     fn add_edges(&mut self, key: K, outgoing: Vec<K>) {
         let outgoing_set: HashSet<K> = outgoing.into_iter().collect();
-        
+
         for dest in &outgoing_set {
             self.incoming_edges
                 .entry(dest.clone())
-                .or_insert_with(HashSet::new)
+                .or_default()
                 .insert(key.clone());
         }
-        
+
         self.outgoing_edges.insert(key, outgoing_set);
     }
 
@@ -69,7 +69,10 @@ where
         for (key, destinations) in &self.outgoing_edges {
             if destinations.is_empty() {
                 layers[0].push(key.clone());
-            } else if destinations.iter().any(|dest| !self.outgoing_edges.contains_key(dest)) {
+            } else if destinations
+                .iter()
+                .any(|dest| !self.outgoing_edges.contains_key(dest))
+            {
                 detached.push(key.clone());
             }
         }
@@ -79,7 +82,7 @@ where
 
         while !layers.last().unwrap().is_empty() {
             let mut candidates: HashSet<K> = HashSet::new();
-            
+
             // Get all nodes that point to nodes in the previous layer
             for prev in layers.last().unwrap() {
                 if let Some(incoming) = self.incoming_edges.get(prev) {
@@ -90,12 +93,12 @@ where
                     }
                 }
             }
-            
+
             // Add previously unsatisfied keys
             candidates.extend(unsatisfied_keys.drain());
 
             let mut current_level: Vec<K> = vec![];
-            
+
             for candidate in candidates {
                 // Check if all dependencies are satisfied
                 let all_satisfied = self.outgoing_edges[&candidate]
@@ -115,7 +118,7 @@ where
 
         // Remove the last empty layer
         layers.pop();
-        
+
         // Add remaining unsatisfied keys to detached
         detached.extend(unsatisfied_keys);
 
@@ -148,8 +151,10 @@ mod tests {
     fn test_simple_dependency() {
         let mut graph = DAGraph::new();
         graph.add_node("a".to_string(), 1, vec![]).unwrap();
-        graph.add_node("b".to_string(), 2, vec!["a".to_string()]).unwrap();
-        
+        graph
+            .add_node("b".to_string(), 2, vec!["a".to_string()])
+            .unwrap();
+
         let (layers, detached) = graph.topological_sort();
         assert_eq!(layers.len(), 2);
         assert_eq!(layers[0], vec!["a".to_string()]);
@@ -162,8 +167,10 @@ mod tests {
         let mut graph = DAGraph::new();
         graph.add_node("a".to_string(), 1, vec![]).unwrap();
         graph.add_node("b".to_string(), 2, vec![]).unwrap();
-        graph.add_node("c".to_string(), 3, vec!["a".to_string(), "b".to_string()]).unwrap();
-        
+        graph
+            .add_node("c".to_string(), 3, vec!["a".to_string(), "b".to_string()])
+            .unwrap();
+
         let (layers, detached) = graph.topological_sort();
         assert_eq!(layers.len(), 2);
         assert_eq!(layers[0].len(), 2);
@@ -176,9 +183,11 @@ mod tests {
     #[test]
     fn test_detached_nodes() {
         let mut graph = DAGraph::new();
-        graph.add_node("a".to_string(), 1, vec!["missing".to_string()]).unwrap();
-        
-        let (layers, detached) = graph.topological_sort();
+        graph
+            .add_node("a".to_string(), 1, vec!["missing".to_string()])
+            .unwrap();
+
+        let (_layers, detached) = graph.topological_sort();
         assert_eq!(detached.len(), 1);
         assert_eq!(detached[0], "a".to_string());
     }

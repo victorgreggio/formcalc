@@ -5,10 +5,10 @@ use crate::value::Value;
 pub trait Function: Send + Sync {
     /// Get the function name
     fn name(&self) -> &str;
-    
+
     /// Get the number of arguments this function expects
     fn num_args(&self) -> usize;
-    
+
     /// Execute the function with the given parameters
     fn execute(&self, params: &[Value]) -> Result<Value>;
 }
@@ -23,7 +23,7 @@ pub fn build_function_id(name: &str, num_args: usize) -> String {
 fn to_snake_case(s: &str) -> String {
     let mut result = String::new();
     let chars: Vec<char> = s.chars().collect();
-    
+
     for (i, &ch) in chars.iter().enumerate() {
         if ch.is_uppercase() {
             // Add underscore before uppercase if not first char and previous was lowercase or next is lowercase
@@ -39,7 +39,7 @@ fn to_snake_case(s: &str) -> String {
             result.push(ch);
         }
     }
-    
+
     result
 }
 

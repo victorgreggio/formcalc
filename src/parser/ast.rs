@@ -5,7 +5,7 @@ pub enum Expr {
     String(String),
     Bool(bool),
     Identifier(String),
-    
+
     // Binary operations
     Add(Box<Expr>, Box<Expr>),
     Subtract(Box<Expr>, Box<Expr>),
@@ -13,7 +13,7 @@ pub enum Expr {
     Divide(Box<Expr>, Box<Expr>),
     Power(Box<Expr>, Box<Expr>),
     Modulo(Box<Expr>, Box<Expr>),
-    
+
     // Comparison
     Equal(Box<Expr>, Box<Expr>),
     NotEqual(Box<Expr>, Box<Expr>),
@@ -21,21 +21,18 @@ pub enum Expr {
     GreaterThan(Box<Expr>, Box<Expr>),
     LessThanOrEqual(Box<Expr>, Box<Expr>),
     GreaterThanOrEqual(Box<Expr>, Box<Expr>),
-    
+
     // Logical
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
     Not(Box<Expr>),
-    
+
     // Unary
     UnaryMinus(Box<Expr>),
-    
+
     // Function calls
-    FunctionCall {
-        name: String,
-        args: Vec<Expr>,
-    },
-    
+    FunctionCall { name: String, args: Vec<Expr> },
+
     // Built-in functions
     Max(Box<Expr>, Box<Expr>),
     Min(Box<Expr>, Box<Expr>),

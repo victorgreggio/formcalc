@@ -7,7 +7,7 @@ pub enum Token {
     String(String),
     Bool(bool),
     Identifier(String),
-    
+
     // Keywords
     If,
     Then,
@@ -17,7 +17,7 @@ pub enum Token {
     Or,
     And,
     Mod,
-    
+
     // Built-in functions
     Max,
     Min,
@@ -35,7 +35,7 @@ pub enum Token {
     PaddedString,
     DifferenceInMonths,
     GetOutputFrom,
-    
+
     // Operators
     Plus,
     Minus,
@@ -49,12 +49,12 @@ pub enum Token {
     GreaterThanOrEqual,
     LessThanOrEqual,
     Not,
-    
+
     // Delimiters
     LeftParen,
     RightParen,
     Comma,
-    
+
     // End of file
     Eof,
 }
@@ -74,27 +74,27 @@ impl Lexer {
 
     pub fn tokenize(&mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
-        
+
         while self.position < self.input.len() {
             self.skip_whitespace_and_comments();
-            
+
             if self.position >= self.input.len() {
                 break;
             }
-            
+
             let token = self.next_token()?;
             if token != Token::Eof {
                 tokens.push(token);
             }
         }
-        
+
         tokens.push(Token::Eof);
         Ok(tokens)
     }
 
     fn next_token(&mut self) -> Result<Token> {
         let ch = self.current_char();
-        
+
         match ch {
             '0'..='9' => self.read_number(),
             '\'' => self.read_string(),
@@ -160,35 +160,39 @@ impl Lexer {
                 self.advance();
                 Ok(Token::Comma)
             }
-            _ => Err(CalculatorError::ParseError(format!("Unexpected character: {}", ch))),
+            _ => Err(CalculatorError::ParseError(format!(
+                "Unexpected character: {}",
+                ch
+            ))),
         }
     }
 
     fn read_number(&mut self) -> Result<Token> {
         let start = self.position;
-        
+
         while self.position < self.input.len() && self.current_char().is_ascii_digit() {
             self.advance();
         }
-        
+
         if self.position < self.input.len() && self.current_char() == '.' {
             self.advance();
             while self.position < self.input.len() && self.current_char().is_ascii_digit() {
                 self.advance();
             }
         }
-        
+
         let num_str: String = self.input[start..self.position].iter().collect();
-        let num = num_str.parse::<f64>()
+        let num = num_str
+            .parse::<f64>()
             .map_err(|e| CalculatorError::ParseError(format!("Invalid number: {}", e)))?;
-        
+
         Ok(Token::Number(num))
     }
 
     fn read_string(&mut self) -> Result<Token> {
         self.advance(); // skip opening '
         let mut result = String::new();
-        
+
         while self.position < self.input.len() && self.current_char() != '\'' {
             let ch = self.current_char();
             if ch == '\\' {
@@ -202,18 +206,20 @@ impl Lexer {
                 self.advance();
             }
         }
-        
+
         if self.position >= self.input.len() {
-            return Err(CalculatorError::ParseError("Unterminated string".to_string()));
+            return Err(CalculatorError::ParseError(
+                "Unterminated string".to_string(),
+            ));
         }
-        
+
         self.advance(); // skip closing '
         Ok(Token::String(result))
     }
 
     fn read_identifier_or_keyword(&mut self) -> Result<Token> {
         let start = self.position;
-        
+
         while self.position < self.input.len() {
             let ch = self.current_char();
             if ch.is_alphanumeric() || ch == '_' {
@@ -222,10 +228,10 @@ impl Lexer {
                 break;
             }
         }
-        
+
         let text: String = self.input[start..self.position].iter().collect();
         let lower = text.to_lowercase();
-        
+
         let token = match lower.as_str() {
             "if" => Token::If,
             "then" => Token::Then,
@@ -254,14 +260,14 @@ impl Lexer {
             "true" | "false" => Token::Bool(lower == "true"),
             _ => Token::Identifier(text),
         };
-        
+
         Ok(token)
     }
 
     fn skip_whitespace_and_comments(&mut self) {
         while self.position < self.input.len() {
             let ch = self.current_char();
-            
+
             if ch.is_whitespace() {
                 self.advance();
             } else if ch == '/' && self.peek() == Some('/') {
@@ -314,10 +320,10 @@ mod tests {
 
     #[test]
     fn test_tokenize_numbers() {
-        let mut lexer = Lexer::new("42 3.14");
+        let mut lexer = Lexer::new("42 3.15");
         let tokens = lexer.tokenize().unwrap();
         assert_eq!(tokens[0], Token::Number(42.0));
-        assert_eq!(tokens[1], Token::Number(3.14));
+        assert_eq!(tokens[1], Token::Number(3.15));
     }
 
     #[test]

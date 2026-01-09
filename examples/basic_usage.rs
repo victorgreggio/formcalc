@@ -107,7 +107,10 @@ fn example_4_dependencies() {
 
     // Create formulas with dependencies
     let base = Formula::new("base_amount", "return 1000");
-    let discount = Formula::new("discount_amount", "return get_output_from('base_amount') * 0.1");
+    let discount = Formula::new(
+        "discount_amount",
+        "return get_output_from('base_amount') * 0.1",
+    );
     let subtotal = Formula::new(
         "subtotal",
         "return get_output_from('base_amount') - get_output_from('discount_amount')",
@@ -130,10 +133,7 @@ fn example_4_dependencies() {
     );
     println!("Subtotal:    {}", engine.get_result("subtotal").unwrap());
     println!("Tax:         {}", engine.get_result("tax").unwrap());
-    println!(
-        "Grand Total: {}",
-        engine.get_result("grand_total").unwrap()
-    );
+    println!("Grand Total: {}", engine.get_result("grand_total").unwrap());
     println!();
 }
 
@@ -154,18 +154,30 @@ fn example_5_builtin_functions() {
 
     engine.execute(formulas).unwrap();
 
-    println!("max(10, 25)       = {}", engine.get_result("max_test").unwrap());
-    println!("min(10, 25)       = {}", engine.get_result("min_test").unwrap());
+    println!(
+        "max(10, 25)       = {}",
+        engine.get_result("max_test").unwrap()
+    );
+    println!(
+        "min(10, 25)       = {}",
+        engine.get_result("min_test").unwrap()
+    );
     println!(
         "rnd(3.14159, 2)   = {}",
         engine.get_result("round_test").unwrap()
     );
-    println!("ceil(4.2)         = {}", engine.get_result("ceil_test").unwrap());
+    println!(
+        "ceil(4.2)         = {}",
+        engine.get_result("ceil_test").unwrap()
+    );
     println!(
         "floor(4.8)        = {}",
         engine.get_result("floor_test").unwrap()
     );
-    println!("2 ^ 8             = {}", engine.get_result("power_test").unwrap());
+    println!(
+        "2 ^ 8             = {}",
+        engine.get_result("power_test").unwrap()
+    );
     println!();
 }
 
@@ -187,15 +199,9 @@ fn example_6_strings() {
 
     engine.execute(formulas).unwrap();
 
-    println!(
-        "Full Name:   {}",
-        engine.get_result("full_name").unwrap()
-    );
+    println!("Full Name:   {}", engine.get_result("full_name").unwrap());
     println!("Greeting:    {}", engine.get_result("greeting").unwrap());
-    println!(
-        "Substring:   {}",
-        engine.get_result("substring").unwrap()
-    );
+    println!("Substring:   {}", engine.get_result("substring").unwrap());
     println!("Padded:      {}", engine.get_result("padded").unwrap());
     println!();
 }
