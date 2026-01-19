@@ -295,7 +295,7 @@ impl Parser {
             Token::AddDays => self.parse_binary_function(Expr::AddDays),
             Token::GetDiffDays => self.parse_binary_function(Expr::GetDiffDays),
             Token::PaddedString => self.parse_binary_function(Expr::PaddedString),
-            Token::DifferenceInMonths => self.parse_binary_function(Expr::DifferenceInMonths),
+            Token::GetDiffMonths => self.parse_binary_function(Expr::GetDiffMonths),
             Token::GetOutputFrom => self.parse_unary_function(Expr::GetOutputFrom),
             _ => Err(CalculatorError::ParseError(format!(
                 "Unexpected token: {:?}",

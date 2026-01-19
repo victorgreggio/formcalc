@@ -270,7 +270,7 @@ println!("Second: {}", engine.get_result("triple").unwrap());
 | `day(date)` | Extract day | `day('2024-01-15')` → 15 |
 | `add_days(date, n)` | Add days | `add_days('2024-01-15', 5)` |
 | `get_diff_days(d1, d2)` | Days between | `get_diff_days('2024-01-20', '2024-01-15')` → 5 |
-| `difference_in_months(d1, d2)` | Months between | - |
+| `get_diff_months(d1, d2)` | Months between | - |
 | `get_output_from('name')` | Get formula result | `get_output_from('price')` |
 
 ## Next Steps

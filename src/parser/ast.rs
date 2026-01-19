@@ -47,7 +47,7 @@ pub enum Expr {
     AddDays(Box<Expr>, Box<Expr>),
     GetDiffDays(Box<Expr>, Box<Expr>),
     PaddedString(Box<Expr>, Box<Expr>),
-    DifferenceInMonths(Box<Expr>, Box<Expr>),
+    GetDiffMonths(Box<Expr>, Box<Expr>),
     GetOutputFrom(Box<Expr>),
 }
 

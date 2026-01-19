@@ -53,7 +53,7 @@ end
 - `day(date)` - Extract day from date string
 - `add_days(date, days)` - Add days to a date
 - `get_diff_days(date1, date2)` - Get difference between dates in days
-- `difference_in_months(date1, date2)` - Get difference in months
+- `get_diff_months(date1, date2)` - Get difference in months
 
 #### String Functions
 - `substr(string, start, length)` - Extract substring

@@ -33,7 +33,7 @@ pub enum Token {
     AddDays,
     GetDiffDays,
     PaddedString,
-    DifferenceInMonths,
+    GetDiffMonths,
     GetOutputFrom,
 
     // Operators
@@ -255,7 +255,7 @@ impl Lexer {
             "add_days" => Token::AddDays,
             "get_diff_days" => Token::GetDiffDays,
             "padded_string" => Token::PaddedString,
-            "difference_in_months" => Token::DifferenceInMonths,
+            "get_diff_months" => Token::GetDiffMonths,
             "get_output_from" => Token::GetOutputFrom,
             "true" | "false" => Token::Bool(lower == "true"),
             _ => Token::Identifier(text),

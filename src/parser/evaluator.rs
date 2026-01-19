@@ -435,7 +435,7 @@ impl Evaluator {
                     )),
                 }
             }
-            Expr::DifferenceInMonths(date1_expr, date2_expr) => {
+            Expr::GetDiffMonths(date1_expr, date2_expr) => {
                 let date1_val = self.evaluate_expr(date1_expr)?;
                 let date2_val = self.evaluate_expr(date2_expr)?;
 
@@ -448,7 +448,7 @@ impl Evaluator {
                         Ok(Value::Number(months.abs() as f64))
                     }
                     _ => Err(CalculatorError::TypeError(
-                        "DifferenceInMonths requires two string dates".to_string(),
+                        "GetDiffMonths requires two string dates".to_string(),
                     )),
                 }
             }
