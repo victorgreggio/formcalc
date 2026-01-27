@@ -1,30 +1,51 @@
 use std::cmp::Ordering;
 use std::fmt;
 
-/// Represents a variant value that can be a string, number (f64), or boolean.
-/// This is equivalent to the C# Value class which uses Variant<string, double, bool>.
+/// Represents a value that can be a string, number, or boolean.
+///
+/// This is the primary data type for all values in the formula engine,
+/// including variables, function parameters, and formula results.
+///
+/// # Examples
+///
+/// ```
+/// use formcalc::Value;
+///
+/// let num = Value::Number(42.0);
+/// let text = Value::String("hello".to_string());
+/// let flag = Value::Bool(true);
+///
+/// assert_eq!(num.as_number(), Some(42.0));
+/// assert_eq!(text.as_string(), Some("hello"));
+/// assert_eq!(flag.as_bool(), Some(true));
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
+    /// A string value
     String(String),
+    /// A numeric value (f64)
     Number(f64),
+    /// A boolean value
     Bool(bool),
 }
 
 impl Value {
-    /// Check if the value is of a specific type
+    /// Returns `true` if the value is a string.
     pub fn is_string(&self) -> bool {
         matches!(self, Value::String(_))
     }
 
+    /// Returns `true` if the value is a number.
     pub fn is_number(&self) -> bool {
         matches!(self, Value::Number(_))
     }
 
+    /// Returns `true` if the value is a boolean.
     pub fn is_bool(&self) -> bool {
         matches!(self, Value::Bool(_))
     }
 
-    /// Get the value as a specific type, returning None if types don't match
+    /// Returns the value as a string slice if it is a string, or `None` otherwise.
     pub fn as_string(&self) -> Option<&str> {
         match self {
             Value::String(s) => Some(s),
@@ -32,6 +53,7 @@ impl Value {
         }
     }
 
+    /// Returns the value as an f64 if it is a number, or `None` otherwise.
     pub fn as_number(&self) -> Option<f64> {
         match self {
             Value::Number(n) => Some(*n),
@@ -39,6 +61,7 @@ impl Value {
         }
     }
 
+    /// Returns the value as a boolean if it is a boolean, or `None` otherwise.
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Value::Bool(b) => Some(*b),

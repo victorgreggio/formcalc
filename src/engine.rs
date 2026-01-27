@@ -9,7 +9,26 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Main engine for executing formulas
+/// Main engine for parsing and executing formulas with dependency resolution.
+///
+/// The `Engine` manages variables, functions, formula results, and automatically
+/// resolves dependencies between formulas to execute them in the correct order.
+/// Formulas in the same dependency layer are executed in parallel for optimal performance.
+///
+/// # Examples
+///
+/// ```
+/// use formcalc::{Engine, Formula, Value};
+///
+/// let mut engine = Engine::new();
+/// engine.set_variable("x".to_string(), Value::Number(10.0));
+///
+/// let formula = Formula::new("doubled", "return x * 2");
+/// engine.execute(vec![formula]).unwrap();
+///
+/// let result = engine.get_result("doubled").unwrap();
+/// assert_eq!(result, Value::Number(20.0));
+/// ```
 pub struct Engine {
     variable_cache: VariableCache,
     formula_result_cache: FormulaResultCache,
@@ -19,6 +38,15 @@ pub struct Engine {
 }
 
 impl Engine {
+    /// Creates a new `Engine` instance with empty caches.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::Engine;
+    ///
+    /// let engine = Engine::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             variable_cache: VariableCache::new(),
@@ -29,18 +57,95 @@ impl Engine {
         }
     }
 
-    /// Set a variable value
+    /// Sets a variable that can be referenced in formulas.
+    ///
+    /// Variables can be used directly in formula expressions by name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The variable name
+    /// * `value` - The value to assign to the variable
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::{Engine, Value};
+    ///
+    /// let mut engine = Engine::new();
+    /// engine.set_variable("pi".to_string(), Value::Number(3.14159));
+    /// ```
     pub fn set_variable(&mut self, name: String, value: Value) {
         self.variable_cache.set(name, value);
     }
 
-    /// Register a custom function
+    /// Registers a custom function that can be called from formulas.
+    ///
+    /// Functions are identified by their name and number of arguments.
+    /// You can register multiple functions with the same name but different arities.
+    ///
+    /// # Arguments
+    ///
+    /// * `function` - An `Arc` containing a type implementing the [`Function`] trait
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::{Engine, Function, Value, Result, CalculatorError};
+    /// use std::sync::Arc;
+    ///
+    /// struct SquareFunction;
+    ///
+    /// impl Function for SquareFunction {
+    ///     fn name(&self) -> &str { "square" }
+    ///     fn num_args(&self) -> usize { 1 }
+    ///     fn execute(&self, params: &[Value]) -> Result<Value> {
+    ///         match params[0] {
+    ///             Value::Number(n) => Ok(Value::Number(n * n)),
+    ///             _ => Err(CalculatorError::TypeError("Expected number".to_string())),
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// let mut engine = Engine::new();
+    /// engine.register_function(Arc::new(SquareFunction));
+    /// ```
     pub fn register_function(&mut self, function: Arc<dyn Function>) {
         let function_id = build_function_id(function.name(), function.num_args());
         self.function_cache.set(function_id, function);
     }
 
-    /// Execute multiple formulas with dependency resolution
+    /// Executes multiple formulas with automatic dependency resolution.
+    ///
+    /// The engine analyzes dependencies between formulas (via `get_output_from` calls),
+    /// builds a dependency graph, and executes formulas in topological order.
+    /// Formulas in the same dependency layer are executed in parallel for performance.
+    ///
+    /// # Arguments
+    ///
+    /// * `formulas` - A vector of [`Formula`] instances to execute
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if dependency resolution succeeds, or an error if there are
+    /// circular dependencies or invalid graph structures.
+    ///
+    /// Individual formula execution errors are captured and available via [`Engine::get_errors`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::{Engine, Formula, Value};
+    ///
+    /// let mut engine = Engine::new();
+    ///
+    /// let f1 = Formula::new("a", "return 10");
+    /// let f2 = Formula::new("b", "return get_output_from('a') * 2");
+    /// let f3 = Formula::new("c", "return get_output_from('b') + 5");
+    ///
+    /// engine.execute(vec![f1, f2, f3]).unwrap();
+    ///
+    /// assert_eq!(engine.get_result("c"), Some(Value::Number(25.0)));
+    /// ```
     pub fn execute(&mut self, formulas: Vec<Formula>) -> Result<()> {
         let mut graph = DAGraph::new();
 
@@ -117,17 +222,70 @@ impl Engine {
         evaluator.evaluate(&program)
     }
 
-    /// Get the result of a formula
+    /// Retrieves the result of a previously executed formula.
+    ///
+    /// # Arguments
+    ///
+    /// * `formula_name` - The name of the formula whose result to retrieve
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(Value)` if the formula executed successfully, or `None` if the
+    /// formula hasn't been executed or failed with an error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::{Engine, Formula, Value};
+    ///
+    /// let mut engine = Engine::new();
+    /// let formula = Formula::new("test", "return 42");
+    /// engine.execute(vec![formula]).unwrap();
+    ///
+    /// assert_eq!(engine.get_result("test"), Some(Value::Number(42.0)));
+    /// assert_eq!(engine.get_result("nonexistent"), None);
+    /// ```
     pub fn get_result(&self, formula_name: &str) -> Option<Value> {
         self.formula_result_cache.get(formula_name)
     }
 
-    /// Get all errors that occurred during execution
+    /// Returns a map of all errors that occurred during the last execution.
+    ///
+    /// The map keys are formula names and values are error messages.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::{Engine, Formula};
+    ///
+    /// let mut engine = Engine::new();
+    /// let formula = Formula::new("bad", "return 1 / 0");
+    /// engine.execute(vec![formula]).unwrap();
+    ///
+    /// assert!(!engine.get_errors().is_empty());
+    /// ```
     pub fn get_errors(&self) -> &HashMap<String, String> {
         &self.errors
     }
 
-    /// Clear all caches and errors
+    /// Clears all variables, formula results, function result caches, and errors.
+    ///
+    /// Note: Registered custom functions are preserved.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::{Engine, Formula, Value};
+    ///
+    /// let mut engine = Engine::new();
+    /// engine.set_variable("x".to_string(), Value::Number(10.0));
+    /// let formula = Formula::new("test", "return x");
+    /// engine.execute(vec![formula]).unwrap();
+    ///
+    /// engine.clear();
+    ///
+    /// assert_eq!(engine.get_result("test"), None);
+    /// ```
     pub fn clear(&mut self) {
         self.variable_cache.clear();
         self.formula_result_cache.clear();

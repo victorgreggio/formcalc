@@ -1,13 +1,30 @@
 use regex::Regex;
 
-/// Trait representing a formula with name, body, and dependencies
+/// Trait representing a formula with name, body, and dependencies.
+///
+/// Implement this trait to create custom formula types that can be used with the [`crate::Engine`].
 pub trait FormulaT {
     fn name(&self) -> &str;
     fn body(&self) -> &str;
     fn depends_on(&self) -> &[String];
 }
 
-/// Concrete implementation of a formula
+/// A formula with a name, body, and automatically detected dependencies.
+///
+/// Dependencies are automatically extracted from `get_output_from('formula_name')` calls
+/// in the formula body. The engine uses these dependencies to determine execution order.
+///
+/// # Examples
+///
+/// ```
+/// use formcalc::Formula;
+///
+/// // Simple formula with no dependencies
+/// let formula = Formula::new("simple", "return 2 + 2");
+///
+/// // Formula that depends on another formula
+/// let dependent = Formula::new("result", "return get_output_from('simple') * 10");
+/// ```
 #[derive(Debug, Clone)]
 pub struct Formula {
     name: String,
@@ -16,7 +33,24 @@ pub struct Formula {
 }
 
 impl Formula {
-    /// Create a new formula with the given name and body
+    /// Creates a new formula with the given name and body.
+    ///
+    /// Dependencies are automatically extracted from `get_output_from('name')` calls
+    /// in the formula body using regex pattern matching.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The unique identifier for this formula
+    /// * `body` - The formula expression to evaluate
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use formcalc::Formula;
+    ///
+    /// let formula = Formula::new("tax", "return price * 0.2");
+    /// let with_dep = Formula::new("total", "return get_output_from('tax') + get_output_from('price')");
+    /// ```
     pub fn new(name: impl Into<String>, body: impl Into<String>) -> Self {
         let name = name.into();
         let body = body.into();

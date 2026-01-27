@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+/// Errors that can occur during formula parsing and evaluation.
 #[derive(Error, Debug, Clone, PartialEq)]
 pub enum CalculatorError {
     #[error("Evaluation error: {0}")]
@@ -36,4 +37,7 @@ pub enum CalculatorError {
     DivisionByZero,
 }
 
+/// A specialized `Result` type for formula operations.
+///
+/// This is a convenience alias for `Result<T, CalculatorError>`.
 pub type Result<T> = std::result::Result<T, CalculatorError>;

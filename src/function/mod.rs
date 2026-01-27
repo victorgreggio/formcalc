@@ -1,20 +1,77 @@
 use crate::error::Result;
 use crate::value::Value;
 
-/// Trait for custom functions that can be called from formulas
+/// Trait for custom functions that can be called from formulas.
+///
+/// Implement this trait to create custom functions that can be registered
+/// with the [`crate::Engine`] and called from formula expressions.
+///
+/// Functions are identified by their name and number of arguments (arity),
+/// allowing you to have multiple functions with the same name but different arities.
+///
+/// # Examples
+///
+/// ```
+/// use formcalc::{Function, Value, Result, CalculatorError};
+///
+/// struct AddFunction;
+///
+/// impl Function for AddFunction {
+///     fn name(&self) -> &str {
+///         "add"
+///     }
+///
+///     fn num_args(&self) -> usize {
+///         2
+///     }
+///
+///     fn execute(&self, params: &[Value]) -> Result<Value> {
+///         match (&params[0], &params[1]) {
+///             (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
+///             _ => Err(CalculatorError::TypeError("Expected numbers".to_string())),
+///         }
+///     }
+/// }
+/// ```
 pub trait Function: Send + Sync {
-    /// Get the function name
+    /// Returns the function name.
+    ///
+    /// This is the name that will be used to call the function in formulas.
     fn name(&self) -> &str;
 
-    /// Get the number of arguments this function expects
+    /// Returns the number of arguments this function expects.
+    ///
+    /// The engine will validate that the correct number of arguments
+    /// are provided when the function is called.
     fn num_args(&self) -> usize;
 
-    /// Execute the function with the given parameters
+    /// Executes the function with the given parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - A slice of [`Value`] parameters. The length will match `num_args()`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Value)` with the function result, or an error if the function fails.
     fn execute(&self, params: &[Value]) -> Result<Value>;
 }
 
-/// Build a function ID from name and number of arguments
-/// This matches the C# FunctionIdBuilder.Create implementation
+/// Builds a function identifier from name and number of arguments.
+///
+/// The function ID is used internally to uniquely identify functions,
+/// allowing multiple functions with the same name but different arities.
+///
+/// The name is converted to snake_case and combined with the argument count.
+///
+/// # Examples
+///
+/// ```
+/// use formcalc::function::build_function_id;
+///
+/// assert_eq!(build_function_id("MyFunction", 2), "my_function_2");
+/// assert_eq!(build_function_id("max", 2), "max_2");
+/// ```
 pub fn build_function_id(name: &str, num_args: usize) -> String {
     format!("{}_{}", to_snake_case(name), num_args)
 }

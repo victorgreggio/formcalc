@@ -2,9 +2,20 @@
 name = "formcalc"
 version = "0.1.0"
 edition = "2021"
+authors = ["Victor Greggio <victorgreggio@users.noreply.github.com>"]
+description = "A powerful formula evaluation engine with dependency management and parallel execution"
+license = "MIT"
+repository = "https://github.com/victorgreggio/formcalc"
+documentation = "https://docs.rs/formcalc"
+homepage = "https://github.com/victorgreggio/formcalc"
+readme = "README.md"
+keywords = ["formula", "calculator", "expression", "evaluator", "parser"]
+categories = ["parser-implementations", "mathematics", "science"]
 
 [dependencies]
 regex = "1.10"
 thiserror = "1.0"
 chrono = "0.4"
 rayon = "1.10"
+
+[dev-dependencies]
