@@ -2,7 +2,7 @@
 name = "formcalc"
 version = "0.1.0"
 edition = "2021"
-authors = ["Victor Greggio <victorgreggio@users.noreply.github.com>"]
+authors = ["Victor Greggio <victor_greggio@hotmail.com>"]
 description = "A powerful formula evaluation engine with dependency management and parallel execution"
 license = "MIT"
 repository = "https://github.com/victorgreggio/formcalc"
