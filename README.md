@@ -230,3 +230,35 @@ The engine follows the architecture:
 - Function results are cached per execution
 - Layer-by-layer execution ensures dependencies are resolved correctly
 
+## Contributing
+
+We welcome contributions to FormCalc! Here's how you can help:
+
+### Reporting Issues
+
+- Use the GitHub issue tracker to report bugs
+- Describe the issue clearly with steps to reproduce
+- Include sample formulas and expected vs actual behavior
+
+### Submitting Changes
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes with clear, descriptive commit messages
+4. Add tests for any new functionality
+5. Ensure all tests pass (`cargo test`)
+6. Run the formatter (`cargo fmt`)
+7. Run the linter (`cargo clippy`)
+8. Submit a pull request
+
+### Development Guidelines
+
+- Follow Rust naming conventions and idioms
+- Write unit tests for new features
+- Update documentation for API changes
+- Keep commits focused and atomic
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
