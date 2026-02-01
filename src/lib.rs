@@ -110,12 +110,26 @@ pub mod graph;
 pub mod parser;
 pub mod value;
 
+// WASM module for JavaScript bindings
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+
 // Re-export main types
 pub use engine::Engine;
 pub use error::{CalculatorError, Result};
 pub use formula::{Formula, FormulaT};
 pub use function::Function;
 pub use value::Value;
+
+// WASM initialization support
+#[cfg(target_arch = "wasm32")]
+pub use wasm_bindgen_rayon::init_thread_pool;
+
+// Re-export WASM types
+#[cfg(target_arch = "wasm32")]
+pub use wasm::Engine as WasmEngine;
+#[cfg(target_arch = "wasm32")]
+pub use wasm::Formula as WasmFormula;
 
 #[cfg(test)]
 mod tests {
