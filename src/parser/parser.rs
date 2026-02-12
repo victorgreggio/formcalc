@@ -395,36 +395,201 @@ impl Parser {
 mod tests {
     use super::*;
 
+    fn parse_statement(input: &str) -> Statement {
+        let mut parser = Parser::new(input).unwrap();
+        parser.parse().unwrap().statement
+    }
+
+    fn parse_return_expr(input: &str) -> Expr {
+        match parse_statement(input) {
+            Statement::Return(expr) => expr,
+            other => panic!("Expected return statement, got {:?}", other),
+        }
+    }
+
     #[test]
     fn test_parse_simple_return() {
-        let mut parser = Parser::new("return 42").unwrap();
-        let program = parser.parse().unwrap();
+        assert_eq!(
+            parse_statement("return 42"),
+            Statement::Return(Expr::Number(42.0))
+        );
+    }
 
-        match program.statement {
-            Statement::Return(Expr::Number(n)) => assert_eq!(n, 42.0),
-            _ => panic!("Expected return statement with number"),
+    #[test]
+    fn test_parse_operator_precedence_add_mul() {
+        assert_eq!(
+            parse_return_expr("return 2 + 3 * 4"),
+            Expr::Add(
+                Box::new(Expr::Number(2.0)),
+                Box::new(Expr::Multiply(
+                    Box::new(Expr::Number(3.0)),
+                    Box::new(Expr::Number(4.0)),
+                )),
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_power_right_associative() {
+        assert_eq!(
+            parse_return_expr("return 2 ^ 3 ^ 2"),
+            Expr::Power(
+                Box::new(Expr::Number(2.0)),
+                Box::new(Expr::Power(
+                    Box::new(Expr::Number(3.0)),
+                    Box::new(Expr::Number(2.0)),
+                )),
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_logical_precedence_or_and() {
+        assert_eq!(
+            parse_return_expr("return true or false and true"),
+            Expr::Or(
+                Box::new(Expr::Bool(true)),
+                Box::new(Expr::And(
+                    Box::new(Expr::Bool(false)),
+                    Box::new(Expr::Bool(true)),
+                )),
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_unary_and_parenthesized_expression() {
+        assert_eq!(
+            parse_return_expr("return -(1 + 2)"),
+            Expr::UnaryMinus(Box::new(Expr::Add(
+                Box::new(Expr::Number(1.0)),
+                Box::new(Expr::Number(2.0)),
+            )))
+        );
+    }
+
+    #[test]
+    fn test_parse_modulo_expression() {
+        assert_eq!(
+            parse_return_expr("return 10 mod 3"),
+            Expr::Modulo(Box::new(Expr::Number(10.0)), Box::new(Expr::Number(3.0)))
+        );
+    }
+
+    #[test]
+    fn test_parse_identifier_and_function_call_arguments() {
+        assert_eq!(
+            parse_return_expr("return input_value"),
+            Expr::Identifier("input_value".to_string())
+        );
+        assert_eq!(
+            parse_return_expr("return custom_fn()"),
+            Expr::FunctionCall {
+                name: "custom_fn".to_string(),
+                args: vec![],
+            }
+        );
+        assert_eq!(
+            parse_return_expr("return custom_fn(1, 2 + 3)"),
+            Expr::FunctionCall {
+                name: "custom_fn".to_string(),
+                args: vec![
+                    Expr::Number(1.0),
+                    Expr::Add(Box::new(Expr::Number(2.0)), Box::new(Expr::Number(3.0))),
+                ],
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_built_in_unary_functions() {
+        assert_eq!(
+            parse_return_expr("return ceil(1.2)"),
+            Expr::Ceil(Box::new(Expr::Number(1.2)))
+        );
+        assert_eq!(
+            parse_return_expr("return get_output_from('x')"),
+            Expr::GetOutputFrom(Box::new(Expr::String("x".to_string())))
+        );
+    }
+
+    #[test]
+    fn test_parse_built_in_binary_functions() {
+        assert_eq!(
+            parse_return_expr("return max(1, 2)"),
+            Expr::Max(Box::new(Expr::Number(1.0)), Box::new(Expr::Number(2.0)))
+        );
+        assert_eq!(
+            parse_return_expr("return add_days(10, 5)"),
+            Expr::AddDays(Box::new(Expr::Number(10.0)), Box::new(Expr::Number(5.0)))
+        );
+    }
+
+    #[test]
+    fn test_parse_built_in_ternary_function() {
+        assert_eq!(
+            parse_return_expr("return substr('abcdef', 2, 3)"),
+            Expr::Substr(
+                Box::new(Expr::String("abcdef".to_string())),
+                Box::new(Expr::Number(2.0)),
+                Box::new(Expr::Number(3.0)),
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_if_statement_with_else_if_and_else() {
+        let statement = parse_statement(
+            "if (5 > 3) then return 100 else if (2 = 2) then return 200 else return 300 end",
+        );
+
+        match statement {
+            Statement::If {
+                condition,
+                then_block,
+                else_ifs,
+                else_block,
+            } => {
+                assert_eq!(
+                    condition,
+                    Expr::GreaterThan(Box::new(Expr::Number(5.0)), Box::new(Expr::Number(3.0)))
+                );
+                assert_eq!(*then_block, Statement::Return(Expr::Number(100.0)));
+                assert_eq!(else_ifs.len(), 1);
+                assert_eq!(
+                    else_ifs[0].0,
+                    Expr::Equal(Box::new(Expr::Number(2.0)), Box::new(Expr::Number(2.0)))
+                );
+                assert_eq!(else_ifs[0].1, Statement::Return(Expr::Number(200.0)));
+                assert_eq!(*else_block.unwrap(), Statement::Return(Expr::Number(300.0)));
+            }
+            other => panic!("Expected if statement, got {:?}", other),
         }
     }
 
     #[test]
-    fn test_parse_addition() {
-        let mut parser = Parser::new("return 2 + 3").unwrap();
-        let program = parser.parse().unwrap();
-
-        match program.statement {
-            Statement::Return(Expr::Add(_, _)) => {}
-            _ => panic!("Expected return statement with addition"),
-        }
+    fn test_parse_error_statement() {
+        assert_eq!(
+            parse_statement("error('bad input')"),
+            Statement::Error(Expr::String("bad input".to_string()))
+        );
     }
 
     #[test]
-    fn test_parse_if_statement() {
-        let mut parser = Parser::new("if (5 > 3) then return 100 end").unwrap();
-        let program = parser.parse().unwrap();
+    fn test_parse_fails_when_no_block_statement() {
+        let mut parser = Parser::new("42").unwrap();
+        let error = parser.parse().unwrap_err();
+        assert!(
+            matches!(error, CalculatorError::ParseError(message) if message.contains("Expected block statement"))
+        );
+    }
 
-        match program.statement {
-            Statement::If { .. } => {}
-            _ => panic!("Expected if statement"),
-        }
+    #[test]
+    fn test_parse_fails_on_missing_binary_function_comma() {
+        let mut parser = Parser::new("return max(1 2)").unwrap();
+        let error = parser.parse().unwrap_err();
+        assert!(
+            matches!(error, CalculatorError::ParseError(message) if message.contains("Expected Comma"))
+        );
     }
 }
