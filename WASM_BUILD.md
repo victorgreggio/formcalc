@@ -21,7 +21,7 @@ wasm-bindgen target/wasm32-unknown-unknown/release/formcalc.wasm \
   --out-dir pkg --target web
 ```
 
-Or use the provided configuration in `.cargo/config.toml` which sets the flags automatically:
+The provided `.cargo/config.toml` sets the WebAssembly target features automatically:
 
 ```bash
 cargo +nightly build --target wasm32-unknown-unknown --release -Z build-std=std,panic_abort
