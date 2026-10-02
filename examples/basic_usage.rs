@@ -235,10 +235,7 @@ fn example_7_core_business_formulas() {
             "normalized_label",
             "return REPLACE(UPPER(TRIM('  café  ')), 3, 1, 'E')",
         ),
-        Formula::new(
-            "next_month_end",
-            "return ADD_MONTHS('2024-01-31', 1)",
-        ),
+        Formula::new("next_month_end", "return ADD_MONTHS('2024-01-31', 1)"),
     ];
 
     engine.execute(formulas).unwrap();
