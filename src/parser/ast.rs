@@ -1,7 +1,9 @@
+use rust_decimal::Decimal;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     // Literals
-    Number(f64),
+    Number(Decimal),
     String(String),
     Bool(bool),
     Identifier(String),

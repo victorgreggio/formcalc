@@ -9,6 +9,7 @@
 //! - **Dependency Management**: Automatically resolve and execute formulas in the correct order based on dependencies
 //! - **Parallel Execution**: Formulas in the same dependency layer are executed in parallel for maximum performance
 //! - **Built-in Functions**: Support for mathematical, string, and date functions
+//! - **Excel-Style Scalars**: Case-insensitive financial, aggregate, text, and date built-ins
 //! - **Custom Functions**: Register custom functions to extend functionality
 //! - **Variables**: Support for variables in formulas
 //! - **Type System**: Strong typing with support for numbers, strings, and booleans
@@ -18,6 +19,7 @@
 //!
 //! ```rust
 //! use formcalc::{Engine, Formula, Value};
+//! use rust_decimal::Decimal;
 //!
 //! let mut engine = Engine::new();
 //!
@@ -25,23 +27,43 @@
 //! let formula = Formula::new("calculation", "return 2 + 2 * 3");
 //! engine.execute(vec![formula]).unwrap();
 //! let result = engine.get_result("calculation").unwrap();
-//! assert_eq!(result, Value::Number(8.0));
+//! assert_eq!(result, Value::Number(Decimal::new(8, 0)));
 //! ```
 //!
 //! ## Using Variables
 //!
 //! ```rust
 //! use formcalc::{Engine, Formula, Value};
+//! use rust_decimal::Decimal;
 //!
 //! let mut engine = Engine::new();
-//! engine.set_variable("price".to_string(), Value::Number(100.0));
-//! engine.set_variable("tax_rate".to_string(), Value::Number(0.2));
+//! engine.set_variable("price".to_string(), Value::Number(Decimal::new(100, 0)));
+//! engine.set_variable("tax_rate".to_string(), Value::Number(Decimal::new(2, 1)));
 //!
 //! let formula = Formula::new("total", "return price * (1 + tax_rate)");
 //! engine.execute(vec![formula]).unwrap();
 //!
 //! let result = engine.get_result("total").unwrap();
-//! assert_eq!(result, Value::Number(120.0));
+//! assert_eq!(result, Value::Number(Decimal::new(120, 0)));
+//! ```
+//!
+//! ## Built-in Expressions
+//!
+//! Built-ins are case-insensitive (`SUM` and `sum` are equivalent). `IF` is lazy, allowing a
+//! non-selected branch to contain an otherwise failing expression. Aggregates operate on scalar
+//! values only; range syntax and `count_if` are not yet supported. There is no null scalar, so
+//! `COALESCE` is intentionally not defined.
+//!
+//! ```
+//! use formcalc::{Engine, Formula, Value};
+//! use rust_decimal::Decimal;
+//!
+//! let mut engine = Engine::new();
+//! engine.execute(vec![Formula::new(
+//!     "payment",
+//!     "return IF(SUM(0.1, 0.2) = 0.3, PMT(0, 3, 120), 0)",
+//! )]).unwrap();
+//! assert_eq!(engine.get_result("payment"), Some(Value::Number(Decimal::new(-40, 0))));
 //! ```
 //!
 //! ## Formula Dependencies
@@ -50,6 +72,7 @@
 //!
 //! ```rust
 //! use formcalc::{Engine, Formula, Value};
+//! use rust_decimal::Decimal;
 //!
 //! let mut engine = Engine::new();
 //!
@@ -61,7 +84,7 @@
 //! engine.execute(vec![formula1, formula2, formula3]).unwrap();
 //!
 //! let result = engine.get_result("final_price").unwrap();
-//! assert_eq!(result, Value::Number(130.0));
+//! assert_eq!(result, Value::Number(Decimal::new(130, 0)));
 //! ```
 //!
 //! ## Custom Functions
@@ -70,6 +93,7 @@
 //!
 //! ```rust
 //! use formcalc::{Engine, Formula, Function, Value, Result, CalculatorError};
+//! use rust_decimal::Decimal;
 //! use std::sync::Arc;
 //!
 //! struct DoubleFunction;
@@ -85,7 +109,7 @@
 //!
 //!     fn execute(&self, params: &[Value]) -> Result<Value> {
 //!         match params[0] {
-//!             Value::Number(n) => Ok(Value::Number(n * 2.0)),
+//!             Value::Number(n) => Ok(Value::Number(n * Decimal::new(2, 0))),
 //!             _ => Err(CalculatorError::TypeError("Expected number".to_string())),
 //!         }
 //!     }
@@ -98,7 +122,7 @@
 //! engine.execute(vec![formula]).unwrap();
 //!
 //! let result = engine.get_result("test").unwrap();
-//! assert_eq!(result, Value::Number(42.0));
+//! assert_eq!(result, Value::Number(Decimal::new(42, 0)));
 //! ```
 
 pub mod cache;
@@ -108,6 +132,7 @@ pub mod formula;
 pub mod function;
 pub mod graph;
 pub mod parser;
+pub mod trace;
 pub mod value;
 
 // WASM module for JavaScript bindings
@@ -119,6 +144,7 @@ pub use engine::Engine;
 pub use error::{CalculatorError, Result};
 pub use formula::{Formula, FormulaT};
 pub use function::Function;
+pub use trace::{ExecutionTrace, FormulaTrace, TraceOptions, TraceStep};
 pub use value::Value;
 
 // WASM initialization support
@@ -134,6 +160,11 @@ pub use wasm::Formula as WasmFormula;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_decimal::Decimal;
+
+    fn number(value: i64) -> Value {
+        Value::Number(Decimal::new(value, 0))
+    }
 
     #[test]
     fn test_basic_calculation() {
@@ -143,7 +174,7 @@ mod tests {
         engine.execute(vec![formula]).unwrap();
 
         let result = engine.get_result("simple").unwrap();
-        assert_eq!(result, Value::Number(2.0));
+        assert_eq!(result, number(2));
     }
 
     #[test]
@@ -154,7 +185,7 @@ mod tests {
         engine.execute(vec![formula]).unwrap();
 
         let result = engine.get_result("complex").unwrap();
-        assert_eq!(result, Value::Number(15.0));
+        assert_eq!(result, number(15));
     }
 
     #[test]
@@ -176,6 +207,6 @@ mod tests {
         engine.execute(vec![formula]).unwrap();
 
         let result = engine.get_result("funcs").unwrap();
-        assert_eq!(result, Value::Number(23.0));
+        assert_eq!(result, number(23));
     }
 }

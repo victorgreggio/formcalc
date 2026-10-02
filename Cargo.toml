@@ -1,8 +1,8 @@
 [package]
 name = "formcalc"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-authors = ["Victor Greggio <victor_greggio@hotmail.com>"]
+authors = ["Victor Greggio <victor_greggio@outlook.com>"]
 description = "A powerful formula evaluation engine with dependency management and parallel execution"
 license = "MIT"
 repository = "https://github.com/victorgreggio/formcalc"
@@ -16,10 +16,10 @@ categories = ["parser-implementations", "mathematics", "science"]
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-regex = "1.10"
-thiserror = "1.0"
+thiserror = "2"
 chrono = "0.4"
 rayon = "1.10"
+rust_decimal = { version = "1", features = ["maths"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"

@@ -45,6 +45,14 @@ pub trait Function: Send + Sync {
     /// are provided when the function is called.
     fn num_args(&self) -> usize;
 
+    /// Returns whether this function is deterministic for equal arguments.
+    ///
+    /// The engine rejects functions that return `false`, because scheduling them in a
+    /// parallel formula graph could otherwise make equal executions observably differ.
+    fn is_deterministic(&self) -> bool {
+        true
+    }
+
     /// Executes the function with the given parameters.
     ///
     /// # Arguments

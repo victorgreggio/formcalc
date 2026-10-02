@@ -1,4 +1,6 @@
 use crate::{Engine as CoreEngine, Formula as CoreFormula, Value as CoreValue};
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
@@ -32,6 +34,15 @@ impl Engine {
 
         // Set variables in engine
         for (key, value) in vars {
+            if !value.is_finite() {
+                return Err(JsValue::from_str(&format!(
+                    "Invalid variable '{}': numbers must be finite",
+                    key
+                )));
+            }
+
+            let value = Decimal::try_from(value)
+                .map_err(|e| JsValue::from_str(&format!("Invalid variable '{}': {}", key, e)))?;
             self.inner.set_variable(key, CoreValue::Number(value));
         }
 
@@ -51,7 +62,18 @@ impl Engine {
 
         // Convert to number
         match result {
-            CoreValue::Number(n) => Ok(n),
+            CoreValue::Number(n) => {
+                let value = n.to_f64().ok_or_else(|| {
+                    JsValue::from_str("Result cannot be represented as a JavaScript number")
+                })?;
+                if value.is_finite() {
+                    Ok(value)
+                } else {
+                    Err(JsValue::from_str(
+                        "Result cannot be represented as a finite JavaScript number",
+                    ))
+                }
+            }
             _ => Err(JsValue::from_str("Result is not a number")),
         }
     }

@@ -1,26 +1,26 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::hash::Hash;
 
 /// Directed Acyclic Graph for managing dependencies between formulas
 #[derive(Debug, Clone)]
 pub struct DAGraph<K, V>
 where
-    K: Eq + Hash + Clone,
+    K: Eq + Hash + Clone + Ord,
 {
-    data: HashMap<K, V>,
-    incoming_edges: HashMap<K, HashSet<K>>,
-    outgoing_edges: HashMap<K, HashSet<K>>,
+    data: BTreeMap<K, V>,
+    incoming_edges: BTreeMap<K, BTreeSet<K>>,
+    outgoing_edges: BTreeMap<K, BTreeSet<K>>,
 }
 
 impl<K, V> DAGraph<K, V>
 where
-    K: Eq + Hash + Clone,
+    K: Eq + Hash + Clone + Ord,
 {
     pub fn new() -> Self {
         Self {
-            data: HashMap::new(),
-            incoming_edges: HashMap::new(),
-            outgoing_edges: HashMap::new(),
+            data: BTreeMap::new(),
+            incoming_edges: BTreeMap::new(),
+            outgoing_edges: BTreeMap::new(),
         }
     }
 
@@ -47,7 +47,7 @@ where
 
     /// Add edges from a key to its dependencies
     fn add_edges(&mut self, key: K, outgoing: Vec<K>) {
-        let outgoing_set: HashSet<K> = outgoing.into_iter().collect();
+        let outgoing_set: BTreeSet<K> = outgoing.into_iter().collect();
 
         for dest in &outgoing_set {
             self.incoming_edges
@@ -77,11 +77,11 @@ where
             }
         }
 
-        let mut satisfied_keys: HashSet<K> = layers[0].iter().cloned().collect();
-        let mut unsatisfied_keys: HashSet<K> = HashSet::new();
+        let mut satisfied_keys: BTreeSet<K> = layers[0].iter().cloned().collect();
+        let mut unsatisfied_keys: BTreeSet<K> = BTreeSet::new();
 
         while !layers.last().unwrap().is_empty() {
-            let mut candidates: HashSet<K> = HashSet::new();
+            let mut candidates: BTreeSet<K> = BTreeSet::new();
 
             // Get all nodes that point to nodes in the previous layer
             for prev in layers.last().unwrap() {
@@ -95,7 +95,7 @@ where
             }
 
             // Add previously unsatisfied keys
-            candidates.extend(unsatisfied_keys.drain());
+            candidates.extend(std::mem::take(&mut unsatisfied_keys));
 
             let mut current_level: Vec<K> = vec![];
 
@@ -128,7 +128,7 @@ where
 
 impl<K, V> Default for DAGraph<K, V>
 where
-    K: Eq + Hash + Clone,
+    K: Eq + Hash + Clone + Ord,
 {
     fn default() -> Self {
         Self::new()

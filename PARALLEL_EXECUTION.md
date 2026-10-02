@@ -182,7 +182,10 @@ fn test_parallel_execution() {
     
     engine.execute(formulas).unwrap();
     
-    assert_eq!(engine.get_result("a").unwrap(), Value::Number(2.0));
+    assert_eq!(
+        engine.get_result("a").unwrap(),
+        Value::Number(rust_decimal::Decimal::new(2, 0))
+    );
     // ... etc
 }
 

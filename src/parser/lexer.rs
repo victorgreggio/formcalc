@@ -1,9 +1,11 @@
 use crate::error::{CalculatorError, Result};
+use rust_decimal::Decimal;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     // Literals
-    Number(f64),
+    Number(Decimal),
     String(String),
     Bool(bool),
     Identifier(String),
@@ -35,6 +37,7 @@ pub enum Token {
     PaddedString,
     GetDiffMonths,
     GetOutputFrom,
+    Builtin(String),
 
     // Operators
     Plus,
@@ -182,8 +185,7 @@ impl Lexer {
         }
 
         let num_str: String = self.input[start..self.position].iter().collect();
-        let num = num_str
-            .parse::<f64>()
+        let num = Decimal::from_str(&num_str)
             .map_err(|e| CalculatorError::ParseError(format!("Invalid number: {}", e)))?;
 
         Ok(Token::Number(num))
@@ -257,6 +259,11 @@ impl Lexer {
             "padded_string" => Token::PaddedString,
             "get_diff_months" => Token::GetDiffMonths,
             "get_output_from" => Token::GetOutputFrom,
+            "abs" | "sign" | "roundup" | "round_up" | "rounddown" | "round_down" | "trunc"
+            | "clamp" | "pv" | "fv" | "pmt" | "npv" | "simple_interest" | "compound_interest"
+            | "sum" | "average" | "count" | "trim" | "upper" | "lower" | "length" | "replace"
+            | "left" | "right" | "contains" | "end_of_month" | "days_in_month" | "add_months"
+            | "is_before" | "is_after" | "is_same_day" => Token::Builtin(lower),
             "true" | "false" => Token::Bool(lower == "true"),
             _ => Token::Identifier(text),
         };
@@ -318,12 +325,26 @@ impl Lexer {
 mod tests {
     use super::*;
 
+    fn decimal(value: &str) -> Decimal {
+        Decimal::from_str(value).unwrap()
+    }
+
     #[test]
     fn test_tokenize_numbers() {
         let mut lexer = Lexer::new("42 3.15");
         let tokens = lexer.tokenize().unwrap();
-        assert_eq!(tokens[0], Token::Number(42.0));
-        assert_eq!(tokens[1], Token::Number(3.15));
+        assert_eq!(tokens[0], Token::Number(decimal("42")));
+        assert_eq!(tokens[1], Token::Number(decimal("3.15")));
+    }
+
+    #[test]
+    fn test_tokenize_preserves_decimal_literal_precision() {
+        let mut lexer = Lexer::new("0.1234567890123456789012345678");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(
+            tokens[0],
+            Token::Number(decimal("0.1234567890123456789012345678"))
+        );
     }
 
     #[test]
@@ -366,8 +387,8 @@ mod tests {
         let mut lexer = Lexer::new("return 2 + 2");
         let tokens = lexer.tokenize().unwrap();
         assert_eq!(tokens[0], Token::Return);
-        assert_eq!(tokens[1], Token::Number(2.0));
+        assert_eq!(tokens[1], Token::Number(decimal("2")));
         assert_eq!(tokens[2], Token::Plus);
-        assert_eq!(tokens[3], Token::Number(2.0));
+        assert_eq!(tokens[3], Token::Number(decimal("2")));
     }
 }

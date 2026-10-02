@@ -1,4 +1,6 @@
 use formcalc::{Engine, Formula, Value};
+use rust_decimal::Decimal;
+use std::str::FromStr;
 
 fn main() {
     println!("=== FormCalc Examples ===\n");
@@ -20,6 +22,9 @@ fn main() {
 
     // Example 6: String Operations
     example_6_strings();
+
+    // Example 7: Core Business Formulas
+    example_7_core_business_formulas();
 }
 
 fn example_1_simple_calculation() {
@@ -45,9 +50,12 @@ fn example_2_variables() {
     let mut engine = Engine::new();
 
     // Set variables
-    engine.set_variable("price".to_string(), Value::Number(100.0));
-    engine.set_variable("quantity".to_string(), Value::Number(5.0));
-    engine.set_variable("tax_rate".to_string(), Value::Number(0.08));
+    engine.set_variable("price".to_string(), Value::Number(Decimal::new(100, 0)));
+    engine.set_variable("quantity".to_string(), Value::Number(Decimal::new(5, 0)));
+    engine.set_variable(
+        "tax_rate".to_string(),
+        Value::Number(Decimal::from_str("0.08").unwrap()),
+    );
 
     let formula = Formula::new("total", "return price * quantity * (1 + tax_rate)");
 
@@ -67,7 +75,12 @@ fn example_3_conditional() {
     let mut engine = Engine::new();
 
     // Test different scores
-    let scores = vec![95.0, 85.0, 75.0, 65.0];
+    let scores = vec![
+        Decimal::new(95, 0),
+        Decimal::new(85, 0),
+        Decimal::new(75, 0),
+        Decimal::new(65, 0),
+    ];
 
     for score in scores {
         engine.clear();
@@ -203,5 +216,52 @@ fn example_6_strings() {
     println!("Greeting:    {}", engine.get_result("greeting").unwrap());
     println!("Substring:   {}", engine.get_result("substring").unwrap());
     println!("Padded:      {}", engine.get_result("padded").unwrap());
+    println!();
+}
+
+fn example_7_core_business_formulas() {
+    println!("Example 7: Core Business Formulas");
+    println!("---------------------------------");
+
+    let mut engine = Engine::new();
+    let formulas = vec![
+        Formula::new(
+            "business_rule",
+            "return IF(CLAMP(ROUNDUP(12.341, 2), 0, 100) = 12.35, 'approved', 'review')",
+        ),
+        Formula::new("monthly_payment", "return PMT(0, 3, 120)"),
+        Formula::new("average_order", "return AVERAGE(10, 20, 30)"),
+        Formula::new(
+            "normalized_label",
+            "return REPLACE(UPPER(TRIM('  café  ')), 3, 1, 'E')",
+        ),
+        Formula::new(
+            "next_month_end",
+            "return ADD_MONTHS('2024-01-31', 1)",
+        ),
+    ];
+
+    engine.execute(formulas).unwrap();
+
+    println!(
+        "Business rule:     {}",
+        engine.get_result("business_rule").unwrap()
+    );
+    println!(
+        "Monthly payment:   {}",
+        engine.get_result("monthly_payment").unwrap()
+    );
+    println!(
+        "Average order:     {}",
+        engine.get_result("average_order").unwrap()
+    );
+    println!(
+        "Normalized label:  {}",
+        engine.get_result("normalized_label").unwrap()
+    );
+    println!(
+        "Next month end:    {}",
+        engine.get_result("next_month_end").unwrap()
+    );
     println!();
 }
