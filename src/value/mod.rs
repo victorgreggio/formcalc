@@ -1,3 +1,4 @@
+use rust_decimal::Decimal;
 use std::cmp::Ordering;
 use std::fmt;
 
@@ -10,12 +11,13 @@ use std::fmt;
 ///
 /// ```
 /// use formcalc::Value;
+/// use rust_decimal::Decimal;
 ///
-/// let num = Value::Number(42.0);
+/// let num = Value::Number(Decimal::new(42, 0));
 /// let text = Value::String("hello".to_string());
 /// let flag = Value::Bool(true);
 ///
-/// assert_eq!(num.as_number(), Some(42.0));
+/// assert_eq!(num.as_number(), Some(Decimal::new(42, 0)));
 /// assert_eq!(text.as_string(), Some("hello"));
 /// assert_eq!(flag.as_bool(), Some(true));
 /// ```
@@ -23,8 +25,8 @@ use std::fmt;
 pub enum Value {
     /// A string value
     String(String),
-    /// A numeric value (f64)
-    Number(f64),
+    /// A fixed-precision decimal numeric value.
+    Number(Decimal),
     /// A boolean value
     Bool(bool),
 }
@@ -53,8 +55,8 @@ impl Value {
         }
     }
 
-    /// Returns the value as an f64 if it is a number, or `None` otherwise.
-    pub fn as_number(&self) -> Option<f64> {
+    /// Returns the value as a decimal if it is a number, or `None` otherwise.
+    pub fn as_number(&self) -> Option<Decimal> {
         match self {
             Value::Number(n) => Some(*n),
             _ => None,
@@ -112,8 +114,8 @@ impl From<&str> for Value {
     }
 }
 
-impl From<f64> for Value {
-    fn from(n: f64) -> Self {
+impl From<Decimal> for Value {
+    fn from(n: Decimal) -> Self {
         Value::Number(n)
     }
 }
@@ -127,12 +129,17 @@ impl From<bool> for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
+
+    fn decimal(value: &str) -> Decimal {
+        Decimal::from_str(value).unwrap()
+    }
 
     #[test]
     fn test_value_types() {
-        let num = Value::from(42.0);
+        let num = Value::from(decimal("42"));
         assert!(num.is_number());
-        assert_eq!(num.as_number(), Some(42.0));
+        assert_eq!(num.as_number(), Some(decimal("42")));
 
         let text = Value::from("hello");
         assert!(text.is_string());
@@ -145,8 +152,8 @@ mod tests {
 
     #[test]
     fn test_value_comparison() {
-        let a = Value::from(5.0);
-        let b = Value::from(10.0);
+        let a = Value::from(decimal("5"));
+        let b = Value::from(decimal("10"));
         assert!(a < b);
 
         let x = Value::from("apple");
@@ -156,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_value_display() {
-        assert_eq!(Value::from(42.5).to_string(), "42.5");
+        assert_eq!(Value::from(decimal("42.5")).to_string(), "42.5");
         assert_eq!(Value::from("test").to_string(), "test");
         assert_eq!(Value::from(true).to_string(), "true");
     }

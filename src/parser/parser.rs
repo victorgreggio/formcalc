@@ -281,9 +281,14 @@ impl Parser {
                     Ok(Expr::Identifier(name))
                 }
             }
+            Token::If => self.parse_named_function("if"),
+            Token::Builtin(name) => {
+                let name = name.clone();
+                self.parse_named_function(&name)
+            }
             // Built-in functions
-            Token::Max => self.parse_binary_function(Expr::Max),
-            Token::Min => self.parse_binary_function(Expr::Min),
+            Token::Max => self.parse_min_max_function("max", Expr::Max),
+            Token::Min => self.parse_min_max_function("min", Expr::Min),
             Token::Rnd => self.parse_binary_function(Expr::Rnd),
             Token::Ceil => self.parse_unary_function(Expr::Ceil),
             Token::Floor => self.parse_unary_function(Expr::Floor),
@@ -301,6 +306,81 @@ impl Parser {
                 "Unexpected token: {:?}",
                 current
             ))),
+        }
+    }
+
+    fn parse_named_function(&mut self, name: &str) -> Result<Expr> {
+        self.advance();
+        self.expect_token(Token::LeftParen)?;
+        if self.check_token(&Token::RightParen) {
+            self.advance();
+            return Ok(Expr::FunctionCall {
+                name: name.to_string(),
+                args: Vec::new(),
+            });
+        }
+        let first = self.parse_expression()?;
+        if self.check_token(&Token::RightParen) {
+            self.advance();
+            return Ok(Expr::FunctionCall {
+                name: name.to_string(),
+                args: vec![first],
+            });
+        }
+        self.expect_token(Token::Comma)?;
+        let second = self.parse_expression()?;
+        let mut args = vec![first, second];
+        while self.check_token(&Token::Comma) {
+            self.advance();
+            args.push(self.parse_expression()?);
+        }
+        self.expect_token(Token::RightParen)?;
+        Ok(Expr::FunctionCall {
+            name: name.to_string(),
+            args,
+        })
+    }
+
+    fn parse_min_max_function<F>(&mut self, name: &str, constructor: F) -> Result<Expr>
+    where
+        F: FnOnce(Box<Expr>, Box<Expr>) -> Expr,
+    {
+        self.advance();
+        self.expect_token(Token::LeftParen)?;
+        if self.check_token(&Token::RightParen) {
+            self.advance();
+            return Ok(Expr::FunctionCall {
+                name: name.to_string(),
+                args: Vec::new(),
+            });
+        }
+        let first = self.parse_expression()?;
+        if self.check_token(&Token::RightParen) {
+            self.advance();
+            return Ok(Expr::FunctionCall {
+                name: name.to_string(),
+                args: vec![first],
+            });
+        }
+        self.expect_token(Token::Comma)?;
+        let second = self.parse_expression()?;
+        let mut args = vec![first, second];
+        while self.check_token(&Token::Comma) {
+            self.advance();
+            args.push(self.parse_expression()?);
+        }
+        self.expect_token(Token::RightParen)?;
+        if args.len() == 2 {
+            let mut args = args.into_iter();
+            Ok(constructor(
+                Box::new(args.next().expect("two arguments")),
+                Box::new(args.next().expect("two arguments")),
+            ))
+        } else {
+            Ok(Expr::FunctionCall {
+                name: name.to_string(),
+                args,
+            })
         }
     }
 
@@ -394,6 +474,12 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
+
+    fn decimal(value: &str) -> Decimal {
+        Decimal::from_str(value).unwrap()
+    }
 
     fn parse_statement(input: &str) -> Statement {
         let mut parser = Parser::new(input).unwrap();
@@ -411,7 +497,7 @@ mod tests {
     fn test_parse_simple_return() {
         assert_eq!(
             parse_statement("return 42"),
-            Statement::Return(Expr::Number(42.0))
+            Statement::Return(Expr::Number(decimal("42")))
         );
     }
 
@@ -420,10 +506,10 @@ mod tests {
         assert_eq!(
             parse_return_expr("return 2 + 3 * 4"),
             Expr::Add(
-                Box::new(Expr::Number(2.0)),
+                Box::new(Expr::Number(decimal("2"))),
                 Box::new(Expr::Multiply(
-                    Box::new(Expr::Number(3.0)),
-                    Box::new(Expr::Number(4.0)),
+                    Box::new(Expr::Number(decimal("3"))),
+                    Box::new(Expr::Number(decimal("4"))),
                 )),
             )
         );
@@ -434,10 +520,10 @@ mod tests {
         assert_eq!(
             parse_return_expr("return 2 ^ 3 ^ 2"),
             Expr::Power(
-                Box::new(Expr::Number(2.0)),
+                Box::new(Expr::Number(decimal("2"))),
                 Box::new(Expr::Power(
-                    Box::new(Expr::Number(3.0)),
-                    Box::new(Expr::Number(2.0)),
+                    Box::new(Expr::Number(decimal("3"))),
+                    Box::new(Expr::Number(decimal("2"))),
                 )),
             )
         );
@@ -462,8 +548,8 @@ mod tests {
         assert_eq!(
             parse_return_expr("return -(1 + 2)"),
             Expr::UnaryMinus(Box::new(Expr::Add(
-                Box::new(Expr::Number(1.0)),
-                Box::new(Expr::Number(2.0)),
+                Box::new(Expr::Number(decimal("1"))),
+                Box::new(Expr::Number(decimal("2"))),
             )))
         );
     }
@@ -472,7 +558,10 @@ mod tests {
     fn test_parse_modulo_expression() {
         assert_eq!(
             parse_return_expr("return 10 mod 3"),
-            Expr::Modulo(Box::new(Expr::Number(10.0)), Box::new(Expr::Number(3.0)))
+            Expr::Modulo(
+                Box::new(Expr::Number(decimal("10"))),
+                Box::new(Expr::Number(decimal("3"))),
+            )
         );
     }
 
@@ -494,8 +583,11 @@ mod tests {
             Expr::FunctionCall {
                 name: "custom_fn".to_string(),
                 args: vec![
-                    Expr::Number(1.0),
-                    Expr::Add(Box::new(Expr::Number(2.0)), Box::new(Expr::Number(3.0))),
+                    Expr::Number(decimal("1")),
+                    Expr::Add(
+                        Box::new(Expr::Number(decimal("2"))),
+                        Box::new(Expr::Number(decimal("3"))),
+                    ),
                 ],
             }
         );
@@ -505,7 +597,7 @@ mod tests {
     fn test_parse_built_in_unary_functions() {
         assert_eq!(
             parse_return_expr("return ceil(1.2)"),
-            Expr::Ceil(Box::new(Expr::Number(1.2)))
+            Expr::Ceil(Box::new(Expr::Number(decimal("1.2"))))
         );
         assert_eq!(
             parse_return_expr("return get_output_from('x')"),
@@ -517,11 +609,17 @@ mod tests {
     fn test_parse_built_in_binary_functions() {
         assert_eq!(
             parse_return_expr("return max(1, 2)"),
-            Expr::Max(Box::new(Expr::Number(1.0)), Box::new(Expr::Number(2.0)))
+            Expr::Max(
+                Box::new(Expr::Number(decimal("1"))),
+                Box::new(Expr::Number(decimal("2"))),
+            )
         );
         assert_eq!(
             parse_return_expr("return add_days(10, 5)"),
-            Expr::AddDays(Box::new(Expr::Number(10.0)), Box::new(Expr::Number(5.0)))
+            Expr::AddDays(
+                Box::new(Expr::Number(decimal("10"))),
+                Box::new(Expr::Number(decimal("5"))),
+            )
         );
     }
 
@@ -531,8 +629,8 @@ mod tests {
             parse_return_expr("return substr('abcdef', 2, 3)"),
             Expr::Substr(
                 Box::new(Expr::String("abcdef".to_string())),
-                Box::new(Expr::Number(2.0)),
-                Box::new(Expr::Number(3.0)),
+                Box::new(Expr::Number(decimal("2"))),
+                Box::new(Expr::Number(decimal("3"))),
             )
         );
     }
@@ -552,16 +650,28 @@ mod tests {
             } => {
                 assert_eq!(
                     condition,
-                    Expr::GreaterThan(Box::new(Expr::Number(5.0)), Box::new(Expr::Number(3.0)))
+                    Expr::GreaterThan(
+                        Box::new(Expr::Number(decimal("5"))),
+                        Box::new(Expr::Number(decimal("3"))),
+                    )
                 );
-                assert_eq!(*then_block, Statement::Return(Expr::Number(100.0)));
+                assert_eq!(*then_block, Statement::Return(Expr::Number(decimal("100"))));
                 assert_eq!(else_ifs.len(), 1);
                 assert_eq!(
                     else_ifs[0].0,
-                    Expr::Equal(Box::new(Expr::Number(2.0)), Box::new(Expr::Number(2.0)))
+                    Expr::Equal(
+                        Box::new(Expr::Number(decimal("2"))),
+                        Box::new(Expr::Number(decimal("2"))),
+                    )
                 );
-                assert_eq!(else_ifs[0].1, Statement::Return(Expr::Number(200.0)));
-                assert_eq!(*else_block.unwrap(), Statement::Return(Expr::Number(300.0)));
+                assert_eq!(
+                    else_ifs[0].1,
+                    Statement::Return(Expr::Number(decimal("200")))
+                );
+                assert_eq!(
+                    *else_block.unwrap(),
+                    Statement::Return(Expr::Number(decimal("300")))
+                );
             }
             other => panic!("Expected if statement, got {:?}", other),
         }

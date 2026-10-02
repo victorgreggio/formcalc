@@ -37,12 +37,13 @@ println!("{}", engine.get_result("result").unwrap()); // Prints: 4
 
 ```rust
 use formcalc::{Engine, Formula, Value};
+use rust_decimal::Decimal;
 
 let mut engine = Engine::new();
 
 // Set variables
-engine.set_variable("x".to_string(), Value::Number(10.0));
-engine.set_variable("y".to_string(), Value::Number(5.0));
+engine.set_variable("x".to_string(), Value::Number(Decimal::new(10, 0)));
+engine.set_variable("y".to_string(), Value::Number(Decimal::new(5, 0)));
 
 // Create formula using variables
 let formula = Formula::new("sum", "return x + y");
@@ -56,9 +57,10 @@ println!("{}", engine.get_result("sum").unwrap()); // Prints: 15
 
 ```rust
 use formcalc::{Engine, Formula, Value};
+use rust_decimal::Decimal;
 
 let mut engine = Engine::new();
-engine.set_variable("age".to_string(), Value::Number(25.0));
+engine.set_variable("age".to_string(), Value::Number(Decimal::new(25, 0)));
 
 let formula = Formula::new("status", r#"
     if (age >= 18) then
@@ -111,6 +113,20 @@ println!("Rounded: {}", engine.get_result("rounded").unwrap()); // Prints: 3.14
 println!("Power: {}", engine.get_result("power").unwrap());    // Prints: 1024
 ```
 
+Built-ins are case-insensitive, so Excel-style uppercase and snake_case spellings both work:
+
+```rust
+let formulas = vec![
+    Formula::new("total", "return SUM(0.1, 0.2, 0.3)"),
+    Formula::new("payment", "return PMT(0, 3, 120)"),
+    Formula::new("month_end", "return add_months('2024-01-31', 1)"),
+];
+```
+
+`IF(condition, true_value, false_value)` evaluates only its selected branch. Scalar aggregates
+(`sum`, `average`, `min`, `max`, and `count`) do not accept ranges; range and `count_if` syntax
+is deferred. `COALESCE` is intentionally unavailable because FormCalc has no null value.
+
 ### 6. String Operations
 
 ```rust
@@ -130,6 +146,7 @@ println!("{}", engine.get_result("greeting").unwrap()); // Prints: Hello, World!
 
 ```rust
 use formcalc::{Engine, Formula, Function, Value, Result, CalculatorError};
+use rust_decimal::Decimal;
 use std::sync::Arc;
 
 // Define a custom function
@@ -226,11 +243,12 @@ for name in &["a", "b", "c"] {
 
 ```rust
 use formcalc::{Engine, Formula, Value};
+use rust_decimal::Decimal;
 
 let mut engine = Engine::new();
 
 // First calculation
-engine.set_variable("x".to_string(), Value::Number(5.0));
+engine.set_variable("x".to_string(), Value::Number(Decimal::new(5, 0)));
 let f1 = Formula::new("double", "return x * 2");
 engine.execute(vec![f1]).unwrap();
 println!("First: {}", engine.get_result("double").unwrap());
@@ -239,7 +257,7 @@ println!("First: {}", engine.get_result("double").unwrap());
 engine.clear();
 
 // Second calculation
-engine.set_variable("x".to_string(), Value::Number(10.0));
+engine.set_variable("x".to_string(), Value::Number(Decimal::new(10, 0)));
 let f2 = Formula::new("triple", "return x * 3");
 engine.execute(vec![f2]).unwrap();
 println!("Second: {}", engine.get_result("triple").unwrap());
@@ -255,23 +273,21 @@ println!("Second: {}", engine.get_result("triple").unwrap());
 
 ## Built-in Functions
 
-| Function | Description | Example |
-|----------|-------------|---------|
-| `max(a, b)` | Maximum of two numbers | `max(10, 20)` → 20 |
-| `min(a, b)` | Minimum of two numbers | `min(10, 20)` → 10 |
-| `rnd(n, d)` | Round to d decimals | `rnd(3.14159, 2)` → 3.14 |
-| `ceil(n)` | Round up | `ceil(4.2)` → 5 |
-| `floor(n)` | Round down | `floor(4.8)` → 4 |
-| `exp(n)` | Exponential | `exp(1)` → 2.718... |
-| `substr(s, start, len)` | Substring | `substr('hello', 0, 3)` → 'hel' |
-| `padded_string(s, w)` | Pad with zeros | `padded_string('42', 5)` → '00042' |
-| `year(date)` | Extract year | `year('2024-01-15')` → 2024 |
-| `month(date)` | Extract month | `month('2024-01-15')` → 1 |
-| `day(date)` | Extract day | `day('2024-01-15')` → 15 |
-| `add_days(date, n)` | Add days | `add_days('2024-01-15', 5)` |
-| `get_diff_days(d1, d2)` | Days between | `get_diff_days('2024-01-20', '2024-01-15')` → 5 |
-| `get_diff_months(d1, d2)` | Months between | - |
-| `get_output_from('name')` | Get formula result | `get_output_from('price')` |
+All names are case-insensitive, so `SUM` and `sum` are equivalent. The following table uses
+snake_case aliases.
+
+| Group | Functions | Example |
+|-------|-----------|---------|
+| Core math | `abs`, `sign`, `clamp`, `round_up`, `round_down`, `trunc`, `rnd`, `ceil`, `floor`, `exp` | `round_up(3.141, 2)` → `3.15` |
+| Aggregation | `sum`, `average`, `count`, `min`, `max` | `average(10, 20, 30)` → `20` |
+| Financial | `pv`, `fv`, `pmt`, `npv`, `simple_interest`, `compound_interest` | `pmt(0, 3, 120)` → `-40` |
+| Text | `substr`, `padded_string`, `trim`, `upper`, `lower`, `length`, `replace`, `left`, `right`, `contains` | `replace('café', 3, 1, 'E')` → `'cafE'` |
+| Dates | `year`, `month`, `day`, `add_days`, `get_diff_days`, `get_diff_months`, `end_of_month`, `days_in_month`, `add_months`, `is_before`, `is_after`, `is_same_day` | `add_months('2024-01-31', 1)` → `'2024-02-29T00:00:00'` |
+| Formula graph | `get_output_from` | `get_output_from('price')` |
+
+`pv`, `fv`, `pmt`, and `npv` follow Excel cash-flow signs and accept optional payment timing
+where applicable (`0` for end of period and `1` for beginning). Aggregates accept one or more
+scalar arguments; there are no ranges, collections, or `count_if` yet.
 
 ## Next Steps
 

@@ -81,42 +81,17 @@ impl FunctionCache {
     }
 }
 
-/// Cache for storing function results
-#[derive(Debug, Clone, Default)]
-pub struct FunctionResultCache {
-    cache: Arc<RwLock<HashMap<String, Value>>>,
-}
-
-impl FunctionResultCache {
-    pub fn new() -> Self {
-        Self {
-            cache: Arc::new(RwLock::new(HashMap::new())),
-        }
-    }
-
-    pub fn set(&self, key: String, value: Value) {
-        self.cache.write().unwrap().insert(key, value);
-    }
-
-    pub fn get(&self, key: &str) -> Option<Value> {
-        self.cache.read().unwrap().get(key).cloned()
-    }
-
-    pub fn clear(&self) {
-        self.cache.write().unwrap().clear();
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_decimal::Decimal;
 
     #[test]
     fn test_variable_cache() {
         let cache = VariableCache::new();
-        cache.set("x".to_string(), Value::from(42.0));
+        cache.set("x".to_string(), Value::from(Decimal::new(42, 0)));
 
-        assert_eq!(cache.get("x"), Some(Value::from(42.0)));
+        assert_eq!(cache.get("x"), Some(Value::from(Decimal::new(42, 0))));
         assert_eq!(cache.get("y"), None);
 
         cache.clear();
